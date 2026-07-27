@@ -1,0 +1,31 @@
+# AniVerse Project
+
+## Completed
+- Home Screen redesign
+- New Episodes landscape feed
+- Premium Banner
+- Seasonal CTA
+- Double fetch fix
+- RepaintBoundary fix
+
+## Current Sprint
+Performance Sprint
+
+## Pending
+1. AnimeDetailScreen first paint
+2. Seekbar persistence spam
+3. cacheWidth/cacheHeight
+4. Lazy episode list
+5. Remove release prints
+
+## Important Rules
+- No redesign
+- No navigation changes
+- No business logic changes
+
+## Files
+- home_screen.dart
+- anime_detail_screen.dart
+- watch_screen.dart
+- anime_card.dart
+- mock_data_service.dart

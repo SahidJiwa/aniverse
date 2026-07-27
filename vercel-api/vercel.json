@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/gogoanime/[...slug].js": {
+      "maxDuration": 60
+    }
+  }
+}

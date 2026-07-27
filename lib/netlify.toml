@@ -1,0 +1,18 @@
+[build]
+  publish = "build/web"
+  command = "flutter build web --release"
+
+[build.environment]
+  FLUTTER_VERSION = "3.32.0"
+
+[[redirects]]
+  from = "/api/anilist"
+  to = "/.netlify/functions/anilist"
+  status = 200
+
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Accept"

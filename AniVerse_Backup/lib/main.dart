@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 import 'main_wrapper.dart';
+import 'mock_data_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await MockDataService.initialize();
   runApp(const AniVerseApp());
 }
 

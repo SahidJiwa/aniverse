@@ -1,0 +1,17 @@
+# wrangler.toml — config buat deploy worker proxy video AniVerse
+#
+# Cara deploy:
+#   1. Install Node.js dulu kalau belum ada (nodejs.org)
+#   2. Buka terminal di folder ini (yang ada index.js + wrangler.toml)
+#   3. Jalanin: npx wrangler login   (buka browser, login akun Cloudflare — gratis)
+#   4. Jalanin: npx wrangler deploy
+#   5. Tunggu sampai muncul URL kayak "https://aniverse-proxy.<nama-akun>.workers.dev"
+#   6. COPY URL itu, ganti nilai _streamProxyBase di streaming_service.dart
+#      kalau URL-nya beda dari "aniverse-proxy.my-aniverse.workers.dev"
+
+name = "aniverse-proxy"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[observability]
+enabled = true

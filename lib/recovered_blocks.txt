@@ -1,0 +1,157 @@
+=== STEP 485 (2026-06-28T23:16:46Z) replace_file_content 278chars ===
+"                          errorBuilder: (_, _, _) => Container(
+                            width: 82, height: 82,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                   
+<truncated 120 bytes>
+
+=== STEP 531 (2026-06-28T23:26:19Z) replace_file_content 279chars ===
+"class _ProfileScreenState extends State<ProfileScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _auraCtrl;
+  late AnimationController _shimmerCtrl;
+  late AnimationController _crystalCtrl;
+  int _achievementsCount = 3;
+
+  Stri
+<truncated 1163 bytes>
+
+=== STEP 537 (2026-06-28T23:26:38Z) replace_file_content 271chars ===
+"                           // ── 1. HERO HEADER ──
+                           _HeroHeader(
+                             auraCtrl: _auraCtrl,
+                             crystalCtrl: _crystalCtrl,
+                             equippedFrameId: 
+<truncated 1210 bytes>
+
+=== STEP 546 (2026-06-28T23:27:05Z) replace_file_content 279chars ===
+"class _HeroHeader extends StatelessWidget {
+  final AnimationController auraCtrl;
+  final AnimationController crystalCtrl;
+  final String equippedFrameId;
+  final String equippedBgId;
+  final String equippedFxId;
+
+  const _HeroHeader({
+    require
+<truncated 7956 bytes>
+
+=== STEP 555 (2026-06-28T23:27:28Z) replace_file_content 279chars ===
+"class _ProfileBgPainter extends CustomPainter {
+  final double t;
+  final String bgId;
+  final String fxId;
+  _ProfileBgPainter(this.t, {required this.bgId, required this.fxId});
+
+  static final _rand = math.Random(42);
+  static final _particles = 
+<truncated 9160 bytes>
+
+=== STEP 570 (2026-06-28T23:28:02Z) replace_file_content 280chars ===
+"class _ProfileCosmeticsShowcase extends StatefulWidget {
+  final String equippedFrameId;
+  final String equippedBgId;
+  final String equippedFxId;
+  final Function(String type, String id) onEquip;
+
+  const _ProfileCosmeticsShowcase({
+    required t
+<truncated 25885 bytes>
+
+=== STEP 585 (2026-06-28T23:28:38Z) replace_file_content 270chars ===
+"                           // ── 4. PROFILE COSMETICS STOREFRONT ──
+                           Padding(
+                             padding: const EdgeInsets.symmetric(horizontal: 16),
+                             child: _ProfileCosmeticsShowc
+<truncated 317 bytes>
+
+=== STEP 591 (2026-06-28T23:28:55Z) replace_file_content 270chars ===
+"                           // ── 4. PROFILE COSMETICS STOREFRONT ──
+                           Padding(
+                             padding: const EdgeInsets.symmetric(horizontal: 16),
+                             child: _ProfileCosmeticsShowc
+<truncated 317 bytes>
+
+=== STEP 594 (2026-06-28T23:29:08Z) replace_file_content 262chars ===
+"                          // ── 3. ACTION BUTTONS ──
+                          const _ActionButtons(),
+                          const SizedBox(height: 24),
+
+                          // ── 4. PROFILE COSMETICS STOREFRONT ──
+         
+<truncated 532 bytes>
+
+=== STEP 600 (2026-06-28T23:29:15Z) replace_file_content 278chars ===
+"    } else if (item.type == 'Profile BG') {
+      if (item.id == 'bg_shrine') {
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF161233), Color(0xFF2C163F)],
+
+<truncated 548 bytes>
+
+=== STEP 609 (2026-06-28T23:29:25Z) replace_file_content 205chars ===
+"              Text(
+                'Owned: $ownedCount/${_items.length}  •  Shop ›',
+                style: TextStyle(color: _C.pinkLight, fontSize: 10, fontWeight: FontWeight.w900),
+              ),"
+
+=== STEP 678 (2026-06-28T23:38:38Z) replace_file_content 280chars ===
+"class _FavoriteAnimeCard extends StatelessWidget {
+  final List<Map<String, dynamic>> _favorites = const [
+    {'rank': 1, 'title': 'Solo Leveling', 'rating': 9.8, 'color': Color(0xFF9D4EDD)},
+    {'rank': 2, 'title': 'Attack on Titan', 'rating': 9.7, 
+<truncated 20121 bytes>
+
+=== STEP 691 (2026-06-28T23:40:58Z) replace_file_content 279chars ===
+"class _AiRoastCard extends StatefulWidget {
+  const _AiRoastCard();
+
+  @override
+  State<_AiRoastCard> createState() => _AiRoastCardState();
+}
+
+class _AiRoastCardState extends State<_AiRoastCard> {
+  int _roastIndex = 0;
+  bool _isLoading = false
+<truncated 5110 bytes>
+
+=== STEP 703 (2026-06-28T23:41:51Z) replace_file_content 214chars ===
+"                    child: Text(
+                      f['title'] as String,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                    ),"
+
+=== STEP 769 (2026-06-28T23:54:09Z) replace_file_content 280chars ===
+"class _HeroHeader extends StatelessWidget {
+  final AnimationController auraCtrl;
+  final AnimationController crystalCtrl;
+  final String equippedFrameId;
+  final String equippedBgId;
+  final String equippedFxId;
+
+  const _HeroHeader({
+    require
+<truncated 15662 bytes>
+
+=== STEP 847 (2026-06-29T00:36:49Z) replace_file_content 126chars ===
+"// ─────────────────────────────────────────────────────────────────────────────
+// 3. ACTION BUTTON
+<truncated 24047 bytes>
+
+=== STEP 886 (2026-06-29T01:03:28Z) replace_file_content 271chars ===
+"
+                          // ── 4B. SEASONAL CHALLENGE ──
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: _SeasonalChallengeStrip(),
+     
+<truncated 3417 bytes>
+
+=== STEP 889 (2026-06-29T01:04:02Z) replace_file_content 126chars ===
+"// ─────────────────────────────────────────────────────────────────────────────
+// SHARED: _Card wr
+<truncated 21346 bytes>
+

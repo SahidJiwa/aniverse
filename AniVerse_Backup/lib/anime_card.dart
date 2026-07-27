@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'anime_model.dart';
 import 'anime_detail_screen.dart';
+import 'app_theme.dart';
+import 'mock_data_service.dart';
 
 class AnimeCard extends StatelessWidget {
   final AnimeModel anime;
@@ -17,6 +19,9 @@ class AnimeCard extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () {
+        debugPrint(
+          '[AnimeCard] open detail anime.id="${anime.id}" anime.title="${anime.title}"',
+        );
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -45,32 +50,66 @@ class AnimeCard extends StatelessWidget {
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.7),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                            size: 12,
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            anime.rating.toString(),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                        ],
-                      ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 12,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                anime.rating.toString(),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        ValueListenableBuilder<List<AnimeModel>>(
+                          valueListenable: MockDataService.favoritesNotifier,
+                          builder: (context, favorites, _) {
+                            final isFavorite =
+                                favorites.any((a) => a.id == anime.id);
+                            return Material(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(20),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () {
+                                  MockDataService.toggleFavorite(anime);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Icon(
+                                    isFavorite
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    size: 14,
+                                    color: isFavorite
+                                        ? AppTheme.sakuraPink
+                                        : Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ],

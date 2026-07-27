@@ -1,3 +1,5 @@
+import 'episode_model.dart';
+
 class AnimeModel {
   final String id;
   final String title;
@@ -6,6 +8,7 @@ class AnimeModel {
   final String genre;
   final String description;
   final bool isTrending;
+  final List<EpisodeModel> episodes;
 
   AnimeModel({
     required this.id,
@@ -15,5 +18,6 @@ class AnimeModel {
     required this.genre,
     required this.description,
     this.isTrending = false,
+    this.episodes = const [],
   });
 }

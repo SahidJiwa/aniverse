@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniVerse Studio — Private Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Pin Lock Modal -->
+  <div id="auth-modal" class="auth-overlay">
+    <div class="auth-card">
+      <div class="brand-logo">
+        <div class="logo-icon">⚡</div>
+        <h2>AniVerse Studio</h2>
+        <p>Private Anime Management Portal</p>
+      </div>
+      <form id="auth-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="admin-pin">PIN Akses Admin</label>
+          <input type="password" id="admin-pin" placeholder="Masukkan PIN Admin (default: 8888)" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <span>Masuk Ke Dashboard</span> ➔
+        </button>
+        <p id="auth-error" class="error-text hidden">PIN salah! Silakan coba lagi.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Dashboard UI -->
+  <div id="app-dashboard" class="app-container hidden">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon-sm">⚡</div>
+        <div class="brand-title">AniVerse Studio</div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" onclick="switchTab('catalog')">
+          <span class="icon">🎬</span> Katalog Anime
+        </button>
+        <button class="nav-item" onclick="openAddModal()">
+          <span class="icon">➕</span> Tambah Anime Baru
+        </button>
+        <button class="nav-item" onclick="switchTab('settings')">
+          <span class="icon">⚙️</span> Pengaturan Admin
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="handleLogout()">
+          <span class="icon">🔒</span> Kunci Dashboard
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Header Bar -->
+      <header class="top-bar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Cari anime berdasarkan judul..." oninput="handleSearch()">
+        </div>
+
+        <div class="user-profile">
+          <span class="status-badge live">● Online</span>
+          <span class="admin-tag">Admin Master</span>
+        </div>
+      </header>
+
+      <!-- View: Catalog List -->
+      <section id="view-catalog" class="view-section active">
+        <div class="section-header">
+          <div>
+            <h2>Katalog Anime</h2>
+            <p class="subtitle">Kelola daftar anime, video streaming, episode, dan trailer YouTube</p>
+          </div>
+          <button class="btn btn-accent" onclick="openAddModal()">
+            <span>+ Tambah Anime</span>
+          </button>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-bar">
+          <button class="chip active" onclick="filterCategory('all', this)">Semua Anime (<span id="count-all">0</span>)</button>
+          <button class="chip" onclick="filterCategory('trending', this)">🔥 Trending (<span id="count-trending">0</span>)</button>
+          <button class="chip" onclick="filterCategory('custom', this)">✨ Anime Kustom Saya (<span id="count-custom">0</span>)</button>
+        </div>
+
+        <!-- Anime Cards Grid -->
+        <div id="anime-grid" class="anime-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- View: Settings -->
+      <section id="view-settings" class="view-section hidden">
+        <div class="section-header">
+          <h2>Pengaturan Portal Admin</h2>
+          <p class="subtitle">Konfigurasi PIN Keamanan & Ekspor Data</p>
+        </div>
+
+        <div class="settings-card">
+          <h3>Ganti PIN Admin</h3>
+          <p class="desc">Ubah PIN default (8888) dengan PIN rahasia kamu sendiri.</p>
+          <form onsubmit="handleChangePin(event)" class="settings-form">
+            <div class="form-group">
+              <label>PIN Baru</label>
+              <input type="password" id="new-pin" placeholder="Masukkan PIN baru" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Simpan PIN Baru</button>
+          </form>
+        </div>
+
+        <div class="settings-card danger">
+          <h3>Ekspor & Cadangan Data</h3>
+          <p class="desc">Unduh format data katalog JSON untuk dicadangkan.</p>
+          <button class="btn btn-secondary" onclick="exportCatalogJSON()">📥 Download Data JSON</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add/Edit Anime Modal -->
+  <div id="anime-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Tambah Anime Baru</h3>
+        <button class="close-btn" onclick="closeAnimeModal()">✕</button>
+      </div>
+
+      <form id="anime-form" onsubmit="handleSaveAnime(event)" class="modal-body">
+        <input type="hidden" id="anime-id">
+
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label>Judul Anime *</label>
+            <input type="text" id="field-title" placeholder="Contoh: Solo Leveling Season 2" required>
+          </div>
+          <div class="form-group flex-1">
+            <label>Rating (0.0 - 10.0)</label>
+            <input type="number" id="field-rating" step="0.1" min="0" max="10" placeholder="8.5" value="8.5">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Deskripsi / Sinopsis *</label>
+          <textarea id="field-desc" rows="3" placeholder="Tulis deskripsi atau sinopsis singkat anime..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Link Poster / Cover URL (AniList / Direct URL) *</label>
+          <input type="url" id="field-image" placeholder="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/..." required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>🎬 Link Trailer YouTube (Opsional)</label>
+            <input type="url" id="field-trailer" placeholder="https://www.youtube.com/watch?v=...">
+          </div>
+          <div class="form-group flex-1">
+            <label>▶️ Link Video Episode Kustom (Opsional)</label>
+            <input type="url" id="field-watch" placeholder="https://example.com/stream.mp4">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>Jumlah Episode</label>
+            <input type="number" id="field-episodes" min="1" value="12" placeholder="12">
+          </div>
+          <div class="form-group flex-1">
+            <label>Hari Rilis (Jadwal)</label>
+            <select id="field-release-day">
+              <option value="">-- Tidak Berjadwal --</option>
+              <option value="1">Senin</option>
+              <option value="2">Selasa</option>
+              <option value="3">Rabu</option>
+              <option value="4">Kamis</option>
+              <option value="5">Jumat</option>
+              <option value="6">Sabtu</option>
+              <option value="7">Minggu</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Genre (Pisahkan dengan Koma)</label>
+          <input type="text" id="field-genres" placeholder="Action, Fantasy, Adventure" value="Action, Fantasy">
+        </div>
+
+        <div class="form-checkbox">
+          <label>
+            <input type="checkbox" id="field-trending">
+            <span>Tandai sebagai Anime 🔥 Trending / Spotlight</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeAnimeModal()">Batal</button>
+          <button type="submit" class="btn btn-accent">Simpan Ke Katalog</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
