@@ -564,12 +564,27 @@ class _NetworkImageWithFallback extends StatelessWidget {
     if (url.isEmpty) {
       return _Placeholder(width: width, height: height);
     }
+    // Clean URL
+    final cleanUrl = url.trim();
     return Image.network(
-      url,
+      cleanUrl,
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _Placeholder(width: width, height: height),
+      errorBuilder: (context, error, stackTrace) {
+        // Fallback to proxy if direct load fails due to CORS
+        if (!cleanUrl.startsWith('https://corsproxy.io/?')) {
+          final proxyUrl = 'https://corsproxy.io/?${Uri.encodeComponent(cleanUrl)}';
+          return Image.network(
+            proxyUrl,
+            width: width,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _Placeholder(width: width, height: height),
+          );
+        }
+        return _Placeholder(width: width, height: height);
+      },
       loadingBuilder: (_, child, progress) {
         if (progress == null) return child;
         return SizedBox(
@@ -598,11 +613,22 @@ class _Placeholder extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      color: AppTheme.surfaceElevated,
-      child: Icon(
-        Icons.person,
-        color: AppTheme.textSecondary.withOpacity(0.4),
-        size: 32,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF1E2638),
+            const Color(0xFF111622),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.mic_external_on_rounded,
+          color: AppTheme.highlight.withOpacity(0.7),
+          size: (width != null && width! < 60) ? 22 : 36,
+        ),
       ),
     );
   }

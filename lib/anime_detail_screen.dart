@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'anime_api_service.dart';
 import 'anime_model.dart';
 import 'app_theme.dart';
@@ -341,20 +344,64 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                         return Stack(
                           fit: StackFit.expand,
                           children: [
-                            // Poster stays full-size and fades OUT as the
-                            // trailer fades in — no more shrink-to-corner
-                            // thumbnail, since even scaled down it kept
-                            // covering part of the video. Simple cross-fade
-                            // instead.
-                            FadeTransition(
-                              opacity: ReverseAnimation(_trailerOpacity),
-                              child: buildPosterLayer(),
-                            ),
-                            FadeTransition(
-                              opacity: _trailerOpacity,
-                              child: TrailerPlayer(
-                                trailerUrl: trailerUrl,
-                                fallback: buildPosterLayer(),
+                            buildPosterLayer(),
+                            if (!kIsWeb)
+                              FadeTransition(
+                                opacity: _trailerOpacity,
+                                child: TrailerPlayer(
+                                  trailerUrl: trailerUrl,
+                                  fallback: buildPosterLayer(),
+                                ),
+                              ),
+                            // ── Interactive Trailer Button (Web & Mobile) ──────────
+                            Positioned(
+                              right: 16,
+                              bottom: 16,
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    final cleanUrl = trailerUrl.trim();
+                                    html.window.open(cleanUrl, '_blank');
+                                  },
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.65),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: AppTheme.highlight.withOpacity(0.5),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.highlight.withOpacity(0.25),
+                                          blurRadius: 10,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.play_circle_fill_rounded,
+                                          color: AppTheme.highlight,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Trailer',
+                                          style: TextStyle(
+                                            color: AppTheme.textPrimary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],

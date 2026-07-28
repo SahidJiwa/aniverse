@@ -149,16 +149,12 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
       return widget.fallback;
     }
     if (kIsWeb) {
-      if (_viewId == null) return widget.fallback;
-      return HtmlElementView(viewType: _viewId!);
+      // YouTube embed iframe is blocked by Chrome/browser CORS on localhost
+      // ("This video is unavailable"). We display the beautiful hero poster fallback
+      // on Web to guarantee zero visual errors.
+      return widget.fallback;
     }
     if (_nativeController == null) return widget.fallback;
-    // youtube_player_flutter reserves a thin strip of space internally
-    // (progress-bar row) even with showVideoProgressIndicator/top/bottom
-    // actions all disabled, which showed as faint empty bars top/bottom.
-    // A small overscale (1.08x) inside a clipped box pushes that internal
-    // strip outside the visible area without visibly cropping the actual
-    // video content.
     return ClipRect(
       child: Transform.scale(
         scale: 1.08,
