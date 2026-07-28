@@ -1066,9 +1066,30 @@ query ($idMal: Int) {
   }
 
   static Future<List<VoiceActorModel>> fetchAnimeVoiceActors(String malId, {String? title}) async {
-    if (_vaCache.containsKey(malId)) return _vaCache[malId]!;
-    await fetchAnimeCharacters(malId, title: title); // populates both caches at once
-    return _vaCache[malId] ?? [];
+    if (_vaCache.containsKey(malId) && _vaCache[malId]!.isNotEmpty) {
+      return _vaCache[malId]!;
+    }
+
+    // Attempt primary lookup
+    await fetchAnimeCharacters(malId, title: title);
+    if (_vaCache.containsKey(malId) && _vaCache[malId]!.isNotEmpty) {
+      return _vaCache[malId]!;
+    }
+
+    // If ID is custom or yielded no voice actors, attempt title resolution via AniList/Jikan
+    final searchTitle = title ?? malId;
+    if (searchTitle.isNotEmpty) {
+      final resolvedId = await _resolveMalIdByTitle(searchTitle);
+      if (resolvedId != null && resolvedId != malId) {
+        await fetchAnimeCharacters(resolvedId, title: searchTitle);
+        if (_vaCache.containsKey(resolvedId) && _vaCache[resolvedId]!.isNotEmpty) {
+          _vaCache[malId] = _vaCache[resolvedId]!;
+          return _vaCache[malId]!;
+        }
+      }
+    }
+
+    return _vaCache[malId] ?? const [];
   }
 
   // ── Recommendations — Jikan /anime/{id}/recommendations ─────────────────

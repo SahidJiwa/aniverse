@@ -136,6 +136,7 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
           disableDragSeek: true,
           hideThumbnail: true,
           controlsVisibleAtStart: false,
+          enableCaption: false,
         ),
       );
       _registered = true;

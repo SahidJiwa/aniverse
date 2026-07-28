@@ -15,7 +15,8 @@ void registerVideoElement(String url, String viewId) {
     ..style.objectFit = 'contain'
     ..style.background = '#000'
     ..setAttribute('controlsList', 'nodownload')
-    ..setAttribute('playsinline', 'true');
+    ..setAttribute('playsinline', 'true')
+    ..setAttribute('referrerpolicy', 'no-referrer');
 
   ui_web.platformViewRegistry.registerViewFactory(
     viewId,
