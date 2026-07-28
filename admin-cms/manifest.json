@@ -1,0 +1,24 @@
+{
+  "name": "AniVerse Admin Studio",
+  "short_name": "AniVerse Admin",
+  "description": "Aplikasi Manajemen Katalog & Stream Video AniVerse",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a10",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

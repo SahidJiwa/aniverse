@@ -122,6 +122,30 @@ function showToast(msg, type = 'success') {
   }, 3500);
 }
 
+// ── PWA App Installer Handler ─────────────────────────────────────────────
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('btn-install-pwa');
+  if (btn) btn.classList.remove('hidden');
+});
+
+function installAdminApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        showToast('📱 Aplikasi Admin berhasil terpasang di HP!');
+      }
+      deferredPrompt = null;
+    });
+  } else {
+    showToast('📱 Untuk install: Tekan Opsi Browser (⋮) ➔ Tambahkan ke Layar Utama', 'warning');
+  }
+}
+
+
 // Auth System
 function getAdminPIN() {
   return localStorage.getItem(STORAGE_PIN_KEY) || DEFAULT_PIN;
