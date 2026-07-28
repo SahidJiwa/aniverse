@@ -271,8 +271,10 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                                   child: child,
                                 );
                               },
-                              child: Image.network(
-                                detail.largeImageUrl,
+                              child: ProxiedNetworkImage(
+                                url: detail.largeImageUrl.isNotEmpty
+                                    ? detail.largeImageUrl
+                                    : widget.anime.imageUrl,
                                 fit: BoxFit.cover,
                               ),
                             ),
