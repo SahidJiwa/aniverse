@@ -556,6 +556,27 @@
     </div>
   </div>
 
+  <!-- Mobile Bottom Navigation Bar (App Mode) -->
+  <nav class="mobile-nav-bar">
+    <button class="mnav-item active" onclick="switchTab('catalog', this)">
+      <span class="mnav-icon">🎬</span>
+      <span>Katalog</span>
+    </button>
+    <button class="mnav-item" onclick="openAddAnimeModal()">
+      <span class="mnav-icon">➕</span>
+      <span>Tambah</span>
+    </button>
+    <button class="mnav-item" onclick="switchTab('stats', this)">
+      <span class="mnav-icon">📊</span>
+      <span>Statistik</span>
+    </button>
+    <button class="mnav-item" onclick="switchTab('settings', this)">
+      <span class="mnav-icon">⚙️</span>
+      <span>Pengaturan</span>
+    </button>
+  </nav>
+
   <script src="app.js"></script>
 </body>
 </html>
+
