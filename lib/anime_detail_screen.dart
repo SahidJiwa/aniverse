@@ -91,6 +91,27 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
     return fallback.take(maxCount).toList();
   }
 
+  /// Tertiary voice actor fallback: look up the anime by title in the local
+  /// MockDataService catalog. This ensures voice actors appear even for
+  /// CatalogStore (Admin CMS) entries that don't carry voice actor metadata.
+  static List<VoiceActorModel> _getLocalVoiceActors(AnimeModel target) {
+    final titleKey = target.title.trim().toLowerCase();
+    for (final a in MockDataService.getMockAnimes()) {
+      if (a.title.trim().toLowerCase() == titleKey && a.voiceActors.isNotEmpty) {
+        return a.voiceActors;
+      }
+    }
+    // Partial match — e.g. "Sousou no Frieren Season 2" matches "Sousou no Frieren"
+    for (final a in MockDataService.getMockAnimes()) {
+      if (a.voiceActors.isNotEmpty &&
+          (titleKey.contains(a.title.trim().toLowerCase()) ||
+           a.title.trim().toLowerCase().contains(titleKey))) {
+        return a.voiceActors;
+      }
+    }
+    return const [];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -573,7 +594,12 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                         future: _voiceActorsFuture,
                         builder: (context, vaSnapshot) {
                           final apiVAs = vaSnapshot.data ?? const [];
-                          final vaList = apiVAs.isNotEmpty ? apiVAs : widget.anime.voiceActors;
+                          // Priority: 1) API data  2) anime.voiceActors (from CMS)  3) local title-matched fallback
+                          final vaList = apiVAs.isNotEmpty
+                              ? apiVAs
+                              : widget.anime.voiceActors.isNotEmpty
+                                  ? widget.anime.voiceActors
+                                  : _getLocalVoiceActors(widget.anime);
 
                           return VoiceActorsSection(
                             voiceActors: vaList,
