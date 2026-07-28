@@ -774,24 +774,24 @@ body {
 .mnav-icon { font-size: 20px; }
 
 @media (max-width: 868px) {
-  /* Sidebar Transforms into Mobile View */
+  /* Fix App Layout for iPhone XR & Mobile Screens */
   .app-container {
     flex-direction: column;
-    padding-bottom: 70px;
+    padding-bottom: 80px;
   }
 
+  /* Sidebar header at top */
   .sidebar {
     width: 100%;
     height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
-    padding: 12px 16px;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px !important;
+    background: rgba(10, 12, 22, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: relative; /* Not sticky to avoid overlapping content */
+    z-index: 10;
   }
 
   .sidebar-version, .sidebar-footer, .nav-menu {
@@ -803,61 +803,119 @@ body {
   }
 
   .main-content {
-    padding: 16px 12px;
+    padding: 12px 14px;
   }
 
-  /* Top Bar Header */
+  /* Compact Top Bar & Action Buttons */
   .top-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
+  }
+
+  .search-box input {
+    font-size: 13px;
+    padding: 10px 14px 10px 38px;
   }
 
   .top-bar-right {
-    flex-wrap: wrap;
-    justify-content: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
   .top-bar-right button {
-    flex: 1;
-    min-width: 130px;
+    padding: 8px 12px;
+    font-size: 11px;
     justify-content: center;
   }
 
-  /* Stats Grid */
+  /* Compact Horizontal Rail Stats (Saves 60% vertical space!) */
   .stats-banner {
-    grid-template-columns: repeat(2, 1fr) !important;
+    display: flex !important;
+    overflow-x: auto;
     gap: 10px !important;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .stat-card {
+    min-width: 120px;
+    flex: 0 0 auto;
+    padding: 10px 14px !important;
+    scroll-snap-align: start;
+  }
+
+  .stat-num {
+    font-size: 18px !important;
+  }
+
+  .stat-label {
+    font-size: 10px !important;
   }
 
   /* Filter Toolbar */
   .catalog-toolbar {
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
+    gap: 8px;
   }
 
   .filter-pills {
+    display: flex;
     overflow-x: auto;
-    padding-bottom: 6px;
+    gap: 6px;
+    padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Anime Cards Grid */
+  .pill {
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+  }
+
+  /* Anime Cards Grid for Mobile */
   .anime-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-    gap: 12px !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .anime-card {
+    padding: 10px !important;
+  }
+
+  .anime-card-cover {
+    height: 170px !important;
   }
 
   .anime-card-title {
-    font-size: 13px !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    max-height: 32px;
+    overflow: hidden;
   }
 
-  .anime-card-meta {
-    font-size: 11px !important;
+  .anime-card-desc {
+    display: none; /* Hide long description on mobile card to keep tight */
   }
 
-  /* Edit Modal Mobile Sheet View */
+  .anime-card-actions {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px !important;
+    margin-top: 8px;
+  }
+
+  .anime-card-actions button {
+    padding: 6px 2px !important;
+    font-size: 10px !important;
+    justify-content: center;
+    border-radius: 8px !important;
+  }
+
+  /* Edit Modal Bottom Sheet */
   .modal-overlay {
     padding: 0 !important;
     align-items: flex-end !important;
@@ -865,8 +923,8 @@ body {
 
   .modal-card {
     max-width: 100% !important;
-    height: 92vh !important;
-    max-height: 92vh !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
     border-top-left-radius: 24px !important;
@@ -874,28 +932,28 @@ body {
   }
 
   .modal-header {
-    padding: 16px;
+    padding: 14px 16px;
   }
 
   .modal-tab-nav {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 0 12px;
+    padding: 0 10px;
   }
 
   .mtab {
-    padding: 10px 14px;
-    font-size: 12px;
+    padding: 10px 12px;
+    font-size: 11px;
     white-space: nowrap;
   }
 
   .modal-tab-content {
-    padding: 16px 14px !important;
+    padding: 14px 12px !important;
   }
 
   .form-row {
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   .quality-grid {
@@ -908,12 +966,13 @@ body {
 
   .placement-cards-grid {
     grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
   }
 
   .modal-footer {
-    padding: 14px 16px !important;
+    padding: 12px 14px !important;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
 
   .modal-footer-left, .modal-footer-right {
@@ -923,13 +982,14 @@ body {
   .modal-footer button {
     flex: 1;
     justify-content: center;
-    padding: 12px;
+    padding: 10px;
+    font-size: 12px;
   }
 
   /* Auth Card PIN */
   .auth-card {
     margin: 16px;
-    padding: 28px 20px !important;
+    padding: 24px 16px !important;
   }
 }
 
@@ -942,4 +1002,5 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 20px);
   }
 }
+
 
