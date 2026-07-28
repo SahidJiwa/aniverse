@@ -66,7 +66,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
   /// Fallback: automatically build genre-based recommendations from the local
   /// catalog when the API call (Jikan/AniList) fails or returns empty.
   static List<AnimeModel> _getSmartGenreRecommendations(AnimeModel target, {int maxCount = 8}) {
-    final all = MockDataService.getAllAnime();
+    final all = MockDataService.getMockAnimes();
     final targetGenres = target.genres.map((g) => g.toLowerCase().trim()).toSet();
 
     final scored = <MapEntry<AnimeModel, int>>[];
