@@ -63,6 +63,34 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
     super.dispose();
   }
 
+  /// Fallback: automatically build genre-based recommendations from the local
+  /// catalog when the API call (Jikan/AniList) fails or returns empty.
+  static List<AnimeModel> _getSmartGenreRecommendations(AnimeModel target, {int maxCount = 8}) {
+    final all = MockDataService.getAllAnime();
+    final targetGenres = target.genres.map((g) => g.toLowerCase().trim()).toSet();
+
+    final scored = <MapEntry<AnimeModel, int>>[];
+    for (final a in all) {
+      if (a.id == target.id) continue;
+      final ag = a.genres.map((g) => g.toLowerCase().trim()).toSet();
+      final overlap = targetGenres.intersection(ag).length;
+      if (overlap > 0) scored.add(MapEntry(a, overlap));
+    }
+
+    scored.sort((a, b) {
+      final diff = b.value.compareTo(a.value);
+      return diff != 0 ? diff : b.key.rating.compareTo(a.key.rating);
+    });
+
+    final results = scored.map((e) => e.key).take(maxCount).toList();
+    if (results.isNotEmpty) return results;
+
+    // Ultimate fallback: highest-rated other anime
+    final fallback = all.where((a) => a.id != target.id).toList()
+      ..sort((a, b) => b.rating.compareTo(a.rating));
+    return fallback.take(maxCount).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -506,7 +534,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                           final apiRecs = recSnapshot.data ?? const [];
                           final recs = (apiRecs.isNotEmpty)
                               ? apiRecs
-                              : AnimeApiService.getSmartGenreRecommendations(widget.anime);
+                              : _getSmartGenreRecommendations(widget.anime);
 
                           if (recs.isEmpty) {
                             return Padding(

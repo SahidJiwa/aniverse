@@ -1092,46 +1092,6 @@ query ($idMal: Int) {
     return _vaCache[malId] ?? const [];
   }
 
-  // ── Smart Genre-Based Recommendation Fallback ────────────────────────────
-  /// Generates recommendations automatically based on matching genres from local catalog
-  static List<AnimeModel> getSmartGenreRecommendations(AnimeModel targetAnime, {int maxCount = 8}) {
-    final allAnime = MockDataService.getAllAnime();
-    final targetGenres = targetAnime.genres.map((g) => g.toLowerCase().trim()).toSet();
-
-    if (targetGenres.isEmpty) {
-      return allAnime.where((a) => a.id != targetAnime.id).take(maxCount).toList();
-    }
-
-    final scoredMatches = <MapEntry<AnimeModel, int>>[];
-
-    for (final anime in allAnime) {
-      if (anime.id == targetAnime.id) continue;
-      final animeGenres = anime.genres.map((g) => g.toLowerCase().trim()).toSet();
-      final commonGenres = targetGenres.intersection(animeGenres);
-      if (commonGenres.isNotEmpty) {
-        scoredMatches.add(MapEntry(anime, commonGenres.length));
-      }
-    }
-
-    // Sort by number of matching genres descending, then by rating descending
-    scoredMatches.sort((a, b) {
-      final scoreDiff = b.value.compareTo(a.value);
-      if (scoreDiff != 0) return scoreDiff;
-      return b.key.rating.compareTo(a.key.rating);
-    });
-
-    final results = scoredMatches.map((e) => e.key).take(maxCount).toList();
-
-    // Fallback: If no genre match, return highest rated other anime
-    if (results.isEmpty) {
-      final fallbackList = allAnime.where((a) => a.id != targetAnime.id).toList()
-        ..sort((a, b) => b.rating.compareTo(a.rating));
-      return fallbackList.take(maxCount).toList();
-    }
-
-    return results;
-  }
-
   // ── Recommendations — Jikan /anime/{id}/recommendations ─────────────────
   static Future<List<AnimeModel>> fetchAnimeRecommendations(String malId, {String? title}) async {
     if (_isCustomCatalogId(malId)) {
