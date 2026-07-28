@@ -82,7 +82,7 @@ List<String> corsProxyCandidates(String? url) {
     return [cleanUrl];
   }
 
-  if (cleanUrl.contains('placehold.co')) {
+  if (cleanUrl.contains('placehold.co') || cleanUrl.endsWith('/default.jpg')) {
     return [cleanUrl];
   }
 

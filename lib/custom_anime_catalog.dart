@@ -48,7 +48,11 @@ const List<String> _kEpisodeThumbColors = ['242629', 'B8B8C0']; // AppTheme.surf
 /// Generates [count] placeholder episodes with a neutral placeholder
 /// thumbnail, tagged with [animeTag] in the thumbnail text. Used by every
 /// entry below unless you have real per-episode thumbnails to hand instead.
-List<EpisodeModel> buildCatalogEpisodes(int count, String animeTag) {
+List<EpisodeModel> buildCatalogEpisodes(
+  int count,
+  String animeTag, {
+  String? customStreamUrl,
+}) {
   return List.generate(count, (i) {
     return EpisodeModel(
       number: i + 1,
@@ -56,6 +60,7 @@ List<EpisodeModel> buildCatalogEpisodes(int count, String animeTag) {
       duration: '${22 + (i % 3)}m',
       thumbnailUrl:
           'https://placehold.co/320x180/${_kEpisodeThumbColors[0]}/${_kEpisodeThumbColors[1]}/png?text=$animeTag+Ep${i + 1}',
+      videoUrl: customStreamUrl,
     );
   });
 }
@@ -407,6 +412,19 @@ class CustomAnimeCatalog {
         // Sudah tamat -> releaseDay & nextEpisodeAt sengaja tidak diisi (null),
         // jadi tidak akan muncul di "Tayang Hari Ini" / countdown Jadwal.
         addedAt: DateTime.now(), // badge "NEW" otomatis hilang setelah 14 hari
+      ),
+      AnimeModel(
+        id: 'custom-yani-neko',
+        title: 'Yani Neko',
+        imageUrl: 'https://placehold.co/600x800/101827/00f2fe.png?text=Yani+Neko',
+        rating: 7.6,
+        genres: ['Comedy', 'Slice of Life'],
+        description: 'Aku pengen ngudud setiap hari...',
+        isTrending: true,
+        releaseDay: 5, // Jumat
+        episodes: buildCatalogEpisodes(5, 'YaniNeko'),
+        placement: const ['explore', 'jadwal', 'home_trending', 'home_new', 'home_featured'],
+        addedAt: DateTime.now(),
       ),
 
       // ── Add new custom anime below this line ──────────────────────────────

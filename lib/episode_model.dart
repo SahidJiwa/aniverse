@@ -4,6 +4,7 @@ class EpisodeModel {
   final String duration;
   final String thumbnailUrl;
   final String? airedDate;
+  final String? videoUrl;
 
   const EpisodeModel({
     required this.number,
@@ -11,5 +12,6 @@ class EpisodeModel {
     required this.duration,
     required this.thumbnailUrl,
     this.airedDate,
+    this.videoUrl,
   });
 }

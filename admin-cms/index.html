@@ -119,9 +119,20 @@
         </div>
 
         <div class="settings-card danger">
-          <h3>Ekspor & Cadangan Data</h3>
-          <p class="desc">Unduh format data katalog JSON untuk dicadangkan.</p>
-          <button class="btn btn-secondary" onclick="exportCatalogJSON()">📥 Download Data JSON</button>
+          <h3>👥 Kolaborasi & Sync Otomatis Cloud</h3>
+          <p class="desc" style="margin-bottom: 12px;">Ajak temanmu bantu mengisi data anime dari jarak jauh. Sistem otomatis menggabungkan data tanpa duplikat!</p>
+
+          <div style="background: rgba(46,213,115,0.08); border: 1px solid rgba(46,213,115,0.25); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: #2ed573; line-height: 1.8;">
+            <b>⚡ Cloud Sync Terhubung:</b><br>
+            Setiap kali kamu mengunggah atau mengunduh data JSON dari CMS, file <code>catalog_cloud.json</code> akan disinkronkan ke aplikasi AniVerse secara otomatis tanpa harus install ulang APK/IPA!
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="exportCatalogJSON()">📥 Download Data JSON Saya</button>
+            <button class="btn btn-primary" onclick="exportFriendTemplate()">📄 Beri Template Ke Teman</button>
+            <button class="btn btn-accent" onclick="document.getElementById('import-file').click()">📤 Impor JSON Dari Teman</button>
+            <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importCatalogJSON(event)">
+          </div>
         </div>
       </section>
     </main>
@@ -164,16 +175,62 @@
             <label>🎬 Link Trailer YouTube (Opsional)</label>
             <input type="url" id="field-trailer" placeholder="https://www.youtube.com/watch?v=...">
           </div>
-          <div class="form-group flex-1">
-            <label>▶️ Link Video Episode Kustom (Opsional)</label>
-            <input type="url" id="field-watch" placeholder="https://example.com/stream.mp4">
+        </div>
+
+        <!-- Multi-Quality Episode Link Manager UI -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <label style="font-weight: 600; color: #00f2fe; margin:0;">▶️ Kelola Link Video Per Episode</label>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12px; color: #94a3b8;">Cari Eps:</span>
+              <input type="number" id="episode-search" placeholder="No. Eps" min="1" oninput="jumpToEpisodeSearch()" style="width: 75px; padding: 4px 8px; background: #0f172a; color: #00f2fe; border: 1px solid #00f2fe; border-radius: 6px; font-weight: 700; text-align: center;">
+              <span style="font-size: 12px; color: #94a3b8;">atau Pilih:</span>
+              <select id="episode-select" onchange="renderEpisodeQualityInputs()" style="padding: 4px 10px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; font-weight: 600;">
+                <!-- Populated dynamically (Episode 1, Episode 2...) -->
+              </select>
+            </div>
           </div>
+
+          <!-- Progress Bar -->
+          <div style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span id="ep-current-label" style="font-size: 12px; font-weight: 700; color: #e2e8f0;">Episode 1</span>
+              <span id="ep-progress-label" style="font-size: 11px; color: #94a3b8;">0/12 episode terisi (0%)</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.06); border-radius: 999px; height: 5px; overflow: hidden;">
+              <div id="ep-progress-bar" style="height: 100%; width: 0%; border-radius: 999px; transition: width 0.3s ease, background 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Isi link video untuk 4 kualitas pada episode yang dipilih. <b>✅</b> = lengkap, <b>⚠️</b> = sebagian terisi, kosong = belum diisi.</p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group" style="margin:0;">
+              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 360p</label>
+              <input type="url" id="link-360p" placeholder="https://server.com/ep1-360p.mp4" oninput="saveCurrentEpisodeQualities()">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 480p</label>
+              <input type="url" id="link-480p" placeholder="https://server.com/ep1-480p.mp4" oninput="saveCurrentEpisodeQualities()">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 720p (HD)</label>
+              <input type="url" id="link-720p" placeholder="https://server.com/ep1-720p.mp4" oninput="saveCurrentEpisodeQualities()">
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 1080p (FHD)</label>
+              <input type="url" id="link-1080p" placeholder="https://server.com/ep1-1080p.mp4" oninput="saveCurrentEpisodeQualities()">
+            </div>
+          </div>
+
+          <!-- Hidden storage field for serialization -->
+          <input type="hidden" id="field-watch">
         </div>
 
         <div class="form-row">
           <div class="form-group flex-1">
             <label>Jumlah Episode</label>
-            <input type="number" id="field-episodes" min="1" value="12" placeholder="12">
+            <input type="number" id="field-episodes" min="1" value="12" placeholder="12" oninput="populateEpisodeSelectDropdown()">
           </div>
           <div class="form-group flex-1">
             <label>Hari Rilis (Jadwal)</label>
@@ -188,6 +245,13 @@
               <option value="7">Minggu</option>
             </select>
           </div>
+          <div class="form-group flex-1">
+            <label>Status Penayangan</label>
+            <select id="field-status">
+              <option value="Ongoing">🟢 On-Going (Belum Tamat)</option>
+              <option value="Finished Airing">🏁 Tamat (Finished Airing)</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
@@ -200,6 +264,29 @@
             <input type="checkbox" id="field-trending">
             <span>Tandai sebagai Anime 🔥 Trending / Spotlight</span>
           </label>
+        </div>
+
+        <!-- Placement Selector -->
+        <div style="margin-top: 12px; margin-bottom: 4px;">
+          <label style="font-weight: 600; color: #e2e8f0; font-size: 13px;">📍 Tampilkan di Layar Mana?</label>
+          <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 10px;">Pilih satu atau lebih tempat untuk anime ini muncul di aplikasi AniVerse.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <label class="placement-chip" id="chip-explore">
+              <input type="checkbox" name="placement" value="explore" checked> 🔍 Explore (Default)
+            </label>
+            <label class="placement-chip" id="chip-jadwal">
+              <input type="checkbox" name="placement" value="jadwal"> 📅 Jadwal (Hari Rilis)
+            </label>
+            <label class="placement-chip" id="chip-home_new">
+              <input type="checkbox" name="placement" value="home_new"> ✨ Home — Baru Ditambahkan
+            </label>
+            <label class="placement-chip" id="chip-home_trending">
+              <input type="checkbox" name="placement" value="home_trending"> 🔥 Home — Trending Now
+            </label>
+            <label class="placement-chip" id="chip-home_featured">
+              <input type="checkbox" name="placement" value="home_featured"> 🌟 Home — Hero / Featured
+            </label>
+          </div>
         </div>
 
         <div class="modal-footer">

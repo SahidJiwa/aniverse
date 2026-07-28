@@ -61,6 +61,11 @@ class StreamingService {
   static const _shirayukiBases = [
     'https://shirayuki-scrapper-api-v2.vercel.app/api/v2/hianime',
   ];
+  // Provider: Sub Indo Scraper / Consumet Indo API (Otakudesu / Samehadaku)
+  static const _indoBases = [
+    'https://consumet-api-clone.vercel.app/anime/otakudesu',
+    'https://api.consumet.org/anime/otakudesu',
+  ];
   // Community Consumet mirrors (try-all)
   static const _communityConsumet = [
     'https://consumet-phi.vercel.app/anime/gogoanime',
@@ -581,8 +586,15 @@ class StreamingService {
   Future<StreamingResult> resolveStream(
       String animeTitle, int episodeNumber) async {
     try {
+      // 1. Coba provider Sub Indo terlebih dahulu (Otakudesu/Samehadaku API)
+      final indoResult = await _resolveIndoProvider(animeTitle, episodeNumber);
+      if (indoResult.streamUrl != null) return _proxied(indoResult);
+
+      // 2. Coba provider Shirayuki (HiAnime)
       final result = await _resolveShirayuki(animeTitle, episodeNumber);
       if (result.streamUrl != null) return _proxied(result);
+
+      // 3. Fallback ke Gogoanime / Zoro
       final slug = await _findSlug(animeTitle);
       if (slug == null) {
         return StreamingResult(error: 'Anime tidak ditemukan');
@@ -596,6 +608,28 @@ class StreamingService {
     } catch (e) {
       return StreamingResult(error: 'Error: ${e.toString()}');
     }
+  }
+
+  Future<StreamingResult> _resolveIndoProvider(
+      String animeTitle, int episodeNumber) async {
+    _log('[IndoScraper] Resolving: $animeTitle ep $episodeNumber');
+    for (final base in _indoBases) {
+      final searchResults = await _apiSearch(animeTitle, [base]);
+      if (searchResults.isEmpty) continue;
+      final animeId = searchResults.first['id'] as String?;
+      if (animeId == null || animeId.isEmpty) continue;
+
+      final episodes = await _apiEpisodes(animeId, [base]);
+      final ep = episodes.where((e) => e.number == episodeNumber).firstOrNull;
+      if (ep == null) continue;
+
+      final streamRes = await _apiStream(ep.id, [base]);
+      if (streamRes.streamUrl != null) {
+        _log('[IndoScraper] Success! Stream URL found.');
+        return streamRes;
+      }
+    }
+    return StreamingResult(error: '');
   }
 
   // ── Video-stream proxy ──────────────────────────────────────────────────

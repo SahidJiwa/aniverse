@@ -46,6 +46,16 @@ class AnimeModel {
   /// Optional YouTube trailer URL entered by user or fetched via API.
   final String? trailerUrl;
 
+  /// Admin-assigned screen placement tags. Controls where this anime appears
+  /// beyond the default Explore screen. Values:
+  ///   - 'explore'       : show in Explore search/grid (always shown if in catalog)
+  ///   - 'jadwal'        : show in Jadwal screen for releaseDay
+  ///   - 'home_new'      : show in "Baru Ditambahkan" section on Home
+  ///   - 'home_trending' : show in "Trending Now" section on Home
+  ///   - 'home_featured' : show as hero on Home carousel
+  final List<String> placement;
+  final String status; // 'Ongoing' or 'Finished'
+
   AnimeModel({
     required this.id,
     required this.title,
@@ -63,6 +73,8 @@ class AnimeModel {
     this.malId,
     this.catalogEpisodeLink,
     this.trailerUrl,
+    this.placement = const [],
+    this.status = 'Ongoing',
   });
 
   /// Backward-compat single-genre accessor. Prefer [genres] for any

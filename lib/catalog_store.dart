@@ -11,6 +11,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:http/http.dart' as http;
 import 'anime_model.dart';
 import 'episode_model.dart';
 import 'custom_anime_catalog.dart';
@@ -30,11 +31,44 @@ Map<String, dynamic> _animeToJson(AnimeModel a) => {
   'addedAt': a.addedAt?.toIso8601String(),
   'catalogEpisodeLink': a.catalogEpisodeLink,
   'trailerUrl': a.trailerUrl,
+  'placement': a.placement,
+  'status': a.status,
 };
 
+Map<String, String> _parseQualities(String? raw) {
+  final out = <String, String>{};
+  if (raw == null || raw.trim().isEmpty) return out;
+
+  // Supports: "360p: url1, 720p: url2" or line separated "720p: url" or single "http..."
+  final lines = raw.split(RegExp(r'[\r\n,]+'));
+  for (final l in lines) {
+    final trimmed = l.trim();
+    if (trimmed.isEmpty) continue;
+    if (trimmed.contains(': http')) {
+      final parts = trimmed.split(': http');
+      final qLabel = parts[0].trim();
+      final url = 'http${parts[1].trim()}';
+      out[qLabel] = url;
+    } else if (trimmed.startsWith('http')) {
+      out['720p'] = trimmed;
+    }
+  }
+  return out;
+}
+
 AnimeModel _animeFromJson(Map<String, dynamic> j) {
-  final count = (j['episodeCount'] as int?) ?? 0;
+  final count = (j['episodeCount'] as int?) ?? (j['episodes'] as int?) ?? 12;
   final tag = (j['title'] as String).replaceAll(' ', '');
+  final epLink = j['catalogEpisodeLink'] as String?;
+  final releaseDay = j['releaseDay'] as int?;
+
+  // Build placement list from stored value, fallback to auto-infer
+  List<String> placement = (j['placement'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+  if (placement.isEmpty) {
+    placement = ['explore'];
+    if (releaseDay != null) placement.add('jadwal');
+  }
+
   return AnimeModel(
     id: j['id'] as String,
     title: j['title'] as String,
@@ -43,11 +77,13 @@ AnimeModel _animeFromJson(Map<String, dynamic> j) {
     genres: (j['genres'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
     description: j['description'] as String? ?? '',
     isTrending: j['isTrending'] as bool? ?? false,
-    releaseDay: j['releaseDay'] as int?,
-    episodes: buildCatalogEpisodes(count, tag),
+    releaseDay: releaseDay,
+    episodes: buildCatalogEpisodes(count, tag, customStreamUrl: epLink),
     addedAt: j['addedAt'] != null ? DateTime.tryParse(j['addedAt'] as String) : DateTime.now(),
-    catalogEpisodeLink: j['catalogEpisodeLink'] as String?,
+    catalogEpisodeLink: epLink,
     trailerUrl: j['trailerUrl'] as String?,
+    placement: placement,
+    status: j['status'] as String? ?? 'Ongoing',
   );
 }
 
@@ -99,7 +135,8 @@ class CatalogStore extends ChangeNotifier {
   /// All user-added entries (sorted newest first)
   List<AnimeModel> get userEntries => List.unmodifiable(_userEntries);
 
-  // ── Persistence ────────────────────────────────────────────────────────────
+  // ── Persistence & Remote Cloud Sync ───────────────────────────────────────
+  static const _kCloudUrl = 'https://raw.githubusercontent.com/SahidJiwa/aniverse/main/admin-cms/catalog_cloud.json';
 
   Future<void> init() async {
     if (_ready) return;
@@ -113,10 +150,38 @@ class CatalogStore extends ChangeNotifier {
         _userEntries = list;
       }
     } catch (e) {
-      debugPrint('[CatalogStore] init error: $e');
+      debugPrint('[CatalogStore] init local error: $e');
     }
     _ready = true;
     notifyListeners();
+
+    // Background sync from Cloud Remote Endpoint
+    syncFromCloud();
+  }
+
+  Future<void> syncFromCloud() async {
+    try {
+      final res = await http.get(Uri.parse(_kCloudUrl)).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final listRaw = jsonDecode(res.body) as List<dynamic>;
+        final cloudEntries = listRaw.map((e) => _animeFromJson(e as Map<String, dynamic>)).toList();
+
+        final seen = <String>{..._userEntries.map((a) => a.id)};
+        bool updated = false;
+        for (final item in cloudEntries) {
+          if (seen.add(item.id)) {
+            _userEntries.add(item);
+            updated = true;
+          }
+        }
+        if (updated) {
+          await _save();
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('[CatalogStore] cloud sync skipped or offline: $e');
+    }
   }
 
   Future<void> _save() async {

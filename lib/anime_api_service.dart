@@ -979,25 +979,9 @@ query ($idMal: Int) {
   // ── Characters + voice actors — Jikan /anime/{id}/characters ────────────
   static Future<List<CharacterModel>> fetchAnimeCharacters(String malId, {String? title}) async {
     if (_isCustomCatalogId(malId)) {
-      // ignore: avoid_print
-      print('🟡 CUSTOM-CHAR: malId=$malId title=$title');
-      if (title == null || title.trim().isEmpty) {
-        _charCache[malId] = const [];
-        _vaCache[malId] = const [];
-        return const [];
-      }
-      final resolvedId = await _resolveMalIdByTitle(title);
-      if (resolvedId == null) {
-        _charCache[malId] = const [];
-        _vaCache[malId] = const [];
-        return const [];
-      }
-      // Recurse with the real MAL id, then mirror results under the
-      // original custom-* key so the screen's cache lookups still hit.
-      final resolved = await fetchAnimeCharacters(resolvedId);
-      _charCache[malId] = resolved;
-      _vaCache[malId] = _vaCache[resolvedId] ?? const [];
-      return resolved;
+      _charCache[malId] = const [];
+      _vaCache[malId] = const [];
+      return const [];
     }
     // ignore: avoid_print
     print('🟢 BUILD-CHECK v3: fetchAnimeCharacters($malId) — AniList-primary code path');
@@ -1075,20 +1059,8 @@ query ($idMal: Int) {
   // ── Recommendations — Jikan /anime/{id}/recommendations ─────────────────
   static Future<List<AnimeModel>> fetchAnimeRecommendations(String malId, {String? title}) async {
     if (_isCustomCatalogId(malId)) {
-      // ignore: avoid_print
-      print('🟡 CUSTOM-RECO: malId=$malId title=$title');
-      if (title == null || title.trim().isEmpty) {
-        _recoCache[malId] = const [];
-        return const [];
-      }
-      final resolvedId = await _resolveMalIdByTitle(title);
-      if (resolvedId == null) {
-        _recoCache[malId] = const [];
-        return const [];
-      }
-      final resolved = await fetchAnimeRecommendations(resolvedId);
-      _recoCache[malId] = resolved;
-      return resolved;
+      _recoCache[malId] = const [];
+      return const [];
     }
     // ignore: avoid_print
     print('🟢 BUILD-CHECK v3: fetchAnimeRecommendations($malId) — AniList-primary code path');
@@ -1310,9 +1282,10 @@ query ($idMal: Int) {
   // ── Cover by title — Jikan search, take first result's image ────────────
   static final Map<String, Future<String?>> _coverInFlight = {};
 
-  static Future<String?> fetchCoverByTitle(String title) {
+  static Future<String?> fetchCoverByTitle(String title) async {
     final key = title.trim().toLowerCase();
-    if (_coverCache.containsKey(key)) return Future.value(_coverCache[key]);
+    if (key.isEmpty || key.startsWith('custom-')) return null;
+    if (_coverCache.containsKey(key)) return _coverCache[key];
     return _coverInFlight.putIfAbsent(key, () => _fetchCoverByTitle(key, title));
   }
 

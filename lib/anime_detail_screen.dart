@@ -135,10 +135,25 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
           );
         }
 
-        // ── API failed — build fallback from mock data ──────────────────
+        // ── Custom catalog entry vs Api failure ──────────────────────────
         final JikanAnimeDetail detail;
         final bool isOffline;
-        if (snapshot.hasError || !snapshot.hasData) {
+        if (widget.anime.id.startsWith('custom-')) {
+          detail = JikanAnimeDetail(
+            title: widget.anime.title,
+            synopsis: widget.anime.description,
+            score: widget.anime.rating,
+            rank: null,
+            episodes: widget.anime.episodes.isEmpty ? null : widget.anime.episodes.length,
+            status: widget.anime.status.isNotEmpty ? widget.anime.status : 'Ongoing',
+            genres: widget.anime.genres,
+            studios: const ['AniVerse Original'],
+            largeImageUrl: widget.anime.imageUrl,
+            trailerYoutubeId: null,
+            relations: const [],
+          );
+          isOffline = false;
+        } else if (snapshot.hasError || !snapshot.hasData) {
           detail = JikanAnimeDetail(
             title: widget.anime.title,
             synopsis: widget.anime.description,
@@ -152,7 +167,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
             trailerYoutubeId: null,
             relations: const [],
           );
-          isOffline = !widget.anime.id.startsWith('custom-');
+          isOffline = true;
         } else {
           detail = snapshot.data!;
           isOffline = false;

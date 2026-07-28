@@ -1,0 +1,15 @@
+[
+  {
+    "id": "custom-yani-neko",
+    "title": "Yani Neko",
+    "imageUrl": "https://images.placehold.co/600x800/1a1a2e/ffffff?text=Yani+Neko",
+    "rating": 7.6,
+    "genres": ["Comedy", "Slice of Life"],
+    "description": "Aku pengen ngudud setiap hari...",
+    "isTrending": true,
+    "releaseDay": 5,
+    "episodes": 5,
+    "status": "Ongoing",
+    "placement": ["explore", "jadwal", "home_trending", "home_new", "home_featured"]
+  }
+]

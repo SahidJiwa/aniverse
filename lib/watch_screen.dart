@@ -10,6 +10,7 @@ import 'mock_data_service.dart';
 import 'theme/aniverse_theme.dart';
 import 'my_episode_links.dart';
 import 'browser_fullscreen.dart';
+import 'streaming_service.dart';
 // Conditional import: web uses HTML5 video element, mobile uses stub
 import 'video_element_stub.dart'
     if (dart.library.html) 'video_element_web.dart';
@@ -190,6 +191,10 @@ class _WatchScreenState extends State<WatchScreen>
       _updatePlaybackUiFlags();
       _resolveVideoForCurrentEpisode();
       _seedMockComments();
+      if (_resolvedVideoUrl == null || _forceMockPlayer) {
+        _isPlaying = true;
+        _startPlaybackTimer();
+      }
     });
   }
 
@@ -500,15 +505,49 @@ class _WatchScreenState extends State<WatchScreen>
         _iframeRegistered = false;
       });
 
-      debugPrint('[WatchScreen] resolved custom url for "${widget.anime.title}" ep${ep.number}: $url');
     } else {
+      // ── Auto Scraper Fallback ─────────────────────────────────────────────
+      // If no manual link is set in MyEpisodeLinks or Admin CMS, attempt to
+      // auto-resolve video stream via Sub Indo / Shirayuki / Gogoanime scrapers.
       setState(() {
         _resolvedVideoUrl = null;
-        _resolvedQuality = null;
+        _resolvedQuality = 'Searching...';
         _availableQualities = [];
         _iframeViewId = '';
       });
-      debugPrint('[WatchScreen] no link for "${widget.anime.title}" ep${ep.number} — using mock player');
+      debugPrint('[WatchScreen] attempting auto-stream resolution for "${widget.anime.title}" ep${ep.number}...');
+      StreamingService().resolveStream(widget.anime.title, ep.number).then((res) {
+        if (!mounted) return;
+        if (res.streamUrl != null && res.streamUrl!.isNotEmpty) {
+          final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_auto_' + DateTime.now().millisecondsSinceEpoch.toString();
+          final qualities = res.qualities != null ? res.qualities!.keys.toList() : ['Auto'];
+          setState(() {
+            _resolvedVideoUrl = res.streamUrl;
+            _resolvedQuality = qualities.first;
+            _availableQualities = qualities;
+            _iframeViewId = newViewId;
+            _iframeRegistered = false;
+          });
+          debugPrint('[WatchScreen] auto-stream SUCCESS: ${res.streamUrl}');
+        } else {
+          setState(() {
+            _resolvedVideoUrl = null;
+            _resolvedQuality = null;
+            _availableQualities = [];
+            _iframeViewId = '';
+          });
+          debugPrint('[WatchScreen] auto-stream empty/failed — falling back to mock player');
+        }
+      }).catchError((e) {
+        if (!mounted) return;
+        setState(() {
+          _resolvedVideoUrl = null;
+          _resolvedQuality = null;
+          _availableQualities = [];
+          _iframeViewId = '';
+        });
+        debugPrint('[WatchScreen] auto-stream error: $e');
+      });
     }
   }
 

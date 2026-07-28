@@ -17,6 +17,7 @@ import 'widgets/dashboard_sections.dart';
 import 'notification_service.dart';
 import 'proxied_network_image.dart';
 import 'widgets/liquid_glass.dart';
+import 'catalog_store.dart';
 
 
 
@@ -620,6 +621,7 @@ class _JadwalScreenState extends State<JadwalScreen>
       CurvedAnimation(parent: _livePulseCtrl, curve: Curves.easeInOut),
     );
     _load();
+    CatalogStore.instance.addListener(_onCatalogChanged);
     ReminderService.warmUp().then((_) {
       if (mounted) setState(() {});
     });
@@ -631,10 +633,18 @@ class _JadwalScreenState extends State<JadwalScreen>
 
   @override
   void dispose() {
+    CatalogStore.instance.removeListener(_onCatalogChanged);
     _dayStripCtrl.dispose();
     _livePulseCtrl.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _onCatalogChanged() {
+    if (!mounted || _loading) return;
+    setState(() {
+      _animes = CatalogStore.instance.mergeWithLive(_animes);
+    });
   }
 
   void _centerDayStrip() {
@@ -670,16 +680,26 @@ class _JadwalScreenState extends State<JadwalScreen>
       final a = await AnimeApiService.fetchCurrentSeasonAnime();
       if (!mounted) return;
       if (a.isEmpty) throw Exception('empty');
+      // Merge custom-catalog entries that have 'jadwal' placement or a releaseDay set
+      final customJadwal = CatalogStore.instance.userEntries.where((c) {
+        return c.releaseDay != null ||
+            c.placement.contains('jadwal') ||
+            c.placement.contains('explore') ||
+            c.placement.contains('home_trending') ||
+            c.placement.contains('home_new');
+      }).toList();
+      final merged = CatalogStore.instance.mergeWithLive(a);
       setState(() {
-        _animes = a;
+        _animes = merged;
         _loading = false;
       });
     } catch (_) {
       try {
         final mock = MockDataService.getMockAnimes();
+        final merged = CatalogStore.instance.mergeWithLive(mock);
         if (!mounted) return;
         setState(() {
-          _animes = mock;
+          _animes = merged;
           _loading = false;
         });
       } catch (_) {
