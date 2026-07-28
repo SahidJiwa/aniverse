@@ -7,6 +7,7 @@ import 'anime_model.dart';
 import 'continue_watching_model.dart';
 import 'episode_model.dart';
 import 'tier_system.dart';
+import 'voice_actor_model.dart';
 
 // ── My List status ────────────────────────────────────────────────────────────
 
@@ -523,6 +524,13 @@ class MockDataService {
         episodes: _buildEpisodes(28, 'SousouFrieren'),
         releaseDay: null,
         nextEpisodeAt: null,
+        trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
+        voiceActors: const [
+          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/68641.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/521703.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/71144.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/6/521704.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 2, name: 'Yusuke Kobayashi', characterName: 'Fern', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/53869.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/7/521706.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 3, name: 'Rie Takahashi', characterName: 'Stark', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/54537.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/8/521707.jpg', language: 'Japanese'),
+        ],
       ),
       AnimeModel(
         id: 'custom-frieren-s2',
@@ -536,6 +544,13 @@ class MockDataService {
         episodes: _buildEpisodes(12, 'FrierenS2'),
         releaseDay: 5,
         nextEpisodeAt: nextAiring(5, 23),
+        trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
+        voiceActors: const [
+          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/68641.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/521703.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/71144.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/6/521704.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 2, name: 'Yusuke Kobayashi', characterName: 'Fern', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/53869.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/7/521706.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 3, name: 'Rie Takahashi', characterName: 'Stark', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/54537.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/8/521707.jpg', language: 'Japanese'),
+        ],
       ),
       AnimeModel(
         id: '11',
@@ -549,6 +564,13 @@ class MockDataService {
         episodes: _buildEpisodes(11, 'MushokuTensei'),
         releaseDay: 5,
         nextEpisodeAt: nextAiring(5, 0),
+        trailerUrl: 'https://www.youtube.com/watch?v=r_sT__wzXN4',
+        voiceActors: const [
+          VoiceActorModel(malId: 10, name: 'Yumi Uchiyama', characterName: 'Rudeus Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/54868.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/3/426027.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 11, name: 'Ai Kakuma', characterName: 'Eris Boreas Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/62464.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/5/426028.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 12, name: 'Konomi Kohara', characterName: 'Roxy Migurdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54603.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/2/426029.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 13, name: 'Daisuke Namikawa', characterName: 'Ruijerd Superdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54867.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/426032.jpg', language: 'Japanese'),
+        ],
       ),
       AnimeModel(
         id: 'custom-mushoku-tensei-part-2',
@@ -562,6 +584,13 @@ class MockDataService {
         episodes: _buildEpisodes(12, 'MushokuTenseiPart2'),
         releaseDay: 5,
         nextEpisodeAt: nextAiring(5, 0),
+        trailerUrl: 'https://www.youtube.com/watch?v=r_sT__wzXN4',
+        voiceActors: const [
+          VoiceActorModel(malId: 10, name: 'Yumi Uchiyama', characterName: 'Rudeus Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/54868.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/3/426027.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 11, name: 'Ai Kakuma', characterName: 'Eris Boreas Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/62464.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/5/426028.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 12, name: 'Konomi Kohara', characterName: 'Roxy Migurdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54603.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/2/426029.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 13, name: 'Daisuke Namikawa', characterName: 'Ruijerd Superdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54867.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/426032.jpg', language: 'Japanese'),
+        ],
       ),
     ];
   }

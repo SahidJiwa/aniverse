@@ -27,11 +27,17 @@ import 'dart:ui_web' as ui_web;
 /// (slightly odd) required combo for looping a single video, since loop=1
 /// alone only works for actual playlists.
 void registerYoutubeTrailerElement(String youtubeVideoId, String viewId) {
+  // Dynamically get the current origin so the embed works on both
+  // localhost (dev) and the deployed domain (production).
+  // YouTube requires the 'origin' param to match the embedding page's
+  // origin, otherwise it shows "This video is unavailable".
+  final origin = html.window.location.origin;
+
   final iframe = html.IFrameElement()
     ..src = 'https://www.youtube.com/embed/$youtubeVideoId'
         '?autoplay=1&mute=1&controls=0&loop=1&playlist=$youtubeVideoId'
         '&playsinline=1&modestbranding=1&rel=0&showinfo=0&disablekb=1'
-        '&iv_load_policy=3'
+        '&iv_load_policy=3&enablejsapi=1&origin=$origin'
     ..style.border = 'none'
     ..style.width = '100%'
     ..style.height = '100%'
