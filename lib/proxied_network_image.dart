@@ -76,20 +76,17 @@ List<String> corsProxyCandidates(String? url) {
     return [cleanUrl];
   }
 
-  // AniList's own CDN is already CORS-friendly — see file header. Skip the
-  // MAL-oriented proxy chain entirely for these.
-  if (cleanUrl.contains('anilist.co')) {
+  // AniList CDN, Placeholders, or images directly hosted on public CDNs (myanimelist.net CDN, etc)
+  if (cleanUrl.contains('anilist.co') ||
+      cleanUrl.contains('placehold.co') ||
+      cleanUrl.contains('images.placehold.co') ||
+      cleanUrl.endsWith('/default.jpg')) {
     return [cleanUrl];
   }
 
-  if (cleanUrl.contains('placehold.co') || cleanUrl.endsWith('/default.jpg')) {
-    return [cleanUrl];
-  }
-
-  // Self-hosted Worker /image endpoint — see file header for why this
-  // replaced proxy.corsfix.com. Route MAL URLs through it first; if it
-  // ever goes down, fall through to wsrv.nl and raw URLs.
+  // Try raw direct URL first before falling back to proxy candidates
   final candidates = <String>[
+    cleanUrl,
     '$_aniverseProxyBase/image?url=${Uri.encodeComponent(cleanUrl)}',
   ];
 
@@ -99,14 +96,8 @@ List<String> corsProxyCandidates(String? url) {
       : null;
 
   if (altUrl != null) {
-    candidates.add('$_aniverseProxyBase/image?url=${Uri.encodeComponent(altUrl)}');
-  }
-
-  candidates.add('https://wsrv.nl/?url=${Uri.encodeComponent(cleanUrl)}');
-  candidates.add(cleanUrl);
-
-  if (altUrl != null) {
     candidates.add(altUrl);
+    candidates.add('$_aniverseProxyBase/image?url=${Uri.encodeComponent(altUrl)}');
   }
 
   return candidates;
