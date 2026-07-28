@@ -526,10 +526,10 @@ class MockDataService {
         nextEpisodeAt: null,
         trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
         voiceActors: const [
-          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/68641.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/521703.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/71144.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/6/521704.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 2, name: 'Yusuke Kobayashi', characterName: 'Fern', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/53869.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/7/521706.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 3, name: 'Rie Takahashi', characterName: 'Stark', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/54537.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/8/521707.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n119330-yXw7s5021S2J.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176754-t8bY1LSmSj0Z.png', language: 'Japanese'),
+          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n129213-9U3c8EmsM68n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176755-fQn5gPshHjXz.png', language: 'Japanese'),
+          VoiceActorModel(malId: 2, name: 'Kana Ichinose', characterName: 'Fern', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n128383-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176756-xQn5gPshHjXz.png', language: 'Japanese'),
+          VoiceActorModel(malId: 3, name: 'Hiroki Yasumoto', characterName: 'Stark', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n95610-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176757-xQn5gPshHjXz.png', language: 'Japanese'),
         ],
       ),
       AnimeModel(
@@ -546,10 +546,10 @@ class MockDataService {
         nextEpisodeAt: nextAiring(5, 23),
         trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
         voiceActors: const [
-          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/68641.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/521703.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/71144.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/6/521704.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 2, name: 'Yusuke Kobayashi', characterName: 'Fern', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/53869.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/7/521706.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 3, name: 'Rie Takahashi', characterName: 'Stark', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/54537.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/8/521707.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n119330-yXw7s5021S2J.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176754-t8bY1LSmSj0Z.png', language: 'Japanese'),
+          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n129213-9U3c8EmsM68n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176755-fQn5gPshHjXz.png', language: 'Japanese'),
+          VoiceActorModel(malId: 2, name: 'Kana Ichinose', characterName: 'Fern', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n128383-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176756-xQn5gPshHjXz.png', language: 'Japanese'),
+          VoiceActorModel(malId: 3, name: 'Hiroki Yasumoto', characterName: 'Stark', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n95610-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176757-xQn5gPshHjXz.png', language: 'Japanese'),
         ],
       ),
       AnimeModel(
@@ -566,10 +566,10 @@ class MockDataService {
         nextEpisodeAt: nextAiring(5, 0),
         trailerUrl: 'https://www.youtube.com/watch?v=r_sT__wzXN4',
         voiceActors: const [
-          VoiceActorModel(malId: 10, name: 'Yumi Uchiyama', characterName: 'Rudeus Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/54868.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/3/426027.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 11, name: 'Ai Kakuma', characterName: 'Eris Boreas Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/62464.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/5/426028.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 12, name: 'Konomi Kohara', characterName: 'Roxy Migurdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54603.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/2/426029.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 13, name: 'Daisuke Namikawa', characterName: 'Ruijerd Superdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54867.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/426032.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 10, name: 'Yumi Uchiyama', characterName: 'Rudeus Greyrat', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n106263-K8bX4n3t8bY1.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138541-b1ANspF1EWyFx.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 11, name: 'Ai Kakuma', characterName: 'Eris Boreas Greyrat', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n116499-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138543-IjirxRK26O03.png', language: 'Japanese'),
+          VoiceActorModel(malId: 12, name: 'Konomi Kohara', characterName: 'Roxy Migurdia', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n124967-yXw7s5021S2J.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138542-qQTzQnEJJ3oB.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 13, name: 'Daisuke Namikawa', characterName: 'Ruijerd Superdia', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n95277-9U3c8EmsM68n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138544-xQn5gPshHjXz.png', language: 'Japanese'),
         ],
       ),
       AnimeModel(
@@ -586,10 +586,10 @@ class MockDataService {
         nextEpisodeAt: nextAiring(5, 0),
         trailerUrl: 'https://www.youtube.com/watch?v=r_sT__wzXN4',
         voiceActors: const [
-          VoiceActorModel(malId: 10, name: 'Yumi Uchiyama', characterName: 'Rudeus Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/3/54868.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/3/426027.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 11, name: 'Ai Kakuma', characterName: 'Eris Boreas Greyrat', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/2/62464.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/5/426028.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 12, name: 'Konomi Kohara', characterName: 'Roxy Migurdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54603.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/2/426029.jpg', language: 'Japanese'),
-          VoiceActorModel(malId: 13, name: 'Daisuke Namikawa', characterName: 'Ruijerd Superdia', imageUrl: 'https://cdn.myanimelist.net/images/voiceactors/1/54867.jpg', characterImageUrl: 'https://cdn.myanimelist.net/images/characters/4/426032.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 10, name: 'Yumi Uchiyama', characterName: 'Rudeus Greyrat', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n106263-K8bX4n3t8bY1.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138541-b1ANspF1EWyFx.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 11, name: 'Ai Kakuma', characterName: 'Eris Boreas Greyrat', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n116499-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138543-IjirxRK26O03.png', language: 'Japanese'),
+          VoiceActorModel(malId: 12, name: 'Konomi Kohara', characterName: 'Roxy Migurdia', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n124967-yXw7s5021S2J.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138542-qQTzQnEJJ3oB.jpg', language: 'Japanese'),
+          VoiceActorModel(malId: 13, name: 'Daisuke Namikawa', characterName: 'Ruijerd Superdia', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n95277-9U3c8EmsM68n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b138544-xQn5gPshHjXz.png', language: 'Japanese'),
         ],
       ),
     ];
