@@ -26,11 +26,10 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'anime_model.dart';
-import 'package:aniverse/theme/aniverse_theme.dart'; // Menggunakan tema yang sudah kita buat
+import 'package:aniverse/theme/aniverse_theme.dart';
 import 'mock_data_service.dart';
 import 'anime_card.dart';
 import 'proxied_network_image.dart';
-import 'anime_api_service.dart';
 import 'catalog_store.dart';
 import 'widgets/liquid_glass.dart';
 
@@ -252,15 +251,9 @@ class _ExploreScreenState extends State<ExploreScreen>
   // ── Data loading ───────────────────────────────────────────────────────────
 
   Future<void> _loadAnimes() async {
-    List<AnimeModel> animes;
-    try {
-      animes = await AnimeApiService.fetchTopAnime();
-    } catch (_) {
-      animes = MockDataService.getMockAnimes();
-    }
     if (!mounted) return;
     setState(() {
-      _allAnimes = CatalogStore.instance.mergeWithLive(animes);
+      _allAnimes = CatalogStore.instance.getCustomCatalog();
       _isLoading = false;
     });
     _applyFilter();

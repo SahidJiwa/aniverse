@@ -9,7 +9,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'anime_api_service.dart';
 import 'catalog_store.dart';
-import 'tier_system.dart';
 import 'mock_data_service.dart';
 import 'anime_model.dart';
 import 'proxied_network_image.dart';
@@ -17,7 +16,6 @@ import 'anime_detail_screen.dart';
 import 'app_theme.dart';
 import 'watch_screen.dart';
 import 'recommendation_service.dart';
-import 'widgets/dashboard_sections.dart';
 import 'continue_watching_model.dart';
 import 'explore_screen.dart';
 import 'premium_pass_screen.dart';
@@ -369,34 +367,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final src = _seasonalAnimes.isNotEmpty
-        ? _seasonalAnimes
-        : (_topAnimes.isNotEmpty
-              ? _topAnimes
-              : MockDataService.getMockAnimes());
-    final heroList = (List<AnimeModel>.from(
-      src,
-    )..sort((a, b) => b.rating.compareTo(a.rating))).take(5).toList();
+    final src = CatalogStore.instance.getCustomCatalog();
+    final heroList = src;
     final featured = heroList.isNotEmpty
         ? heroList[_currentPage % heroList.length]
         : null;
 
-    // Combine seasonal + top (deduped by id) so sections below the hero
-    // (Trending, Genre Grid, Today Airing) have a richer, real-cover pool
-    // instead of being limited to whichever single endpoint loaded first.
-    //
-    // Then merge in CustomAnimeCatalog — previously this was skipped
-    // entirely whenever the Jikan fetch succeeded (the common case), so
-    // manually-added anime like Mushoku Tensei or Dandadan never showed up
-    // in Trending/Genre Grid/Search/etc. even though they existed in the
-    // app. mergeWithLive() guarantees catalog entries are always present
-    // regardless of whether the live API call succeeded.
-    final liveAnimesSeen = <String>{};
-    final liveAnimesOnly = <AnimeModel>[];
-    for (final a in [..._seasonalAnimes, ..._topAnimes]) {
-      if (liveAnimesSeen.add(a.id)) liveAnimesOnly.add(a);
-    }
-    final liveAnimes = CatalogStore.instance.mergeWithLive(liveAnimesOnly);
+    final liveAnimes = CatalogStore.instance.getCustomCatalog();
 
     final mq = MediaQuery.of(context);
     final safeTop = mq.padding.top;

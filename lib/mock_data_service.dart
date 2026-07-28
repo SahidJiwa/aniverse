@@ -351,28 +351,20 @@ class MockDataService {
       final now = DateTime.now();
       loadedContinue = [
         ContinueWatchingModel(
-          animeId: '101055',
-          animeTitle: 'Cyberpunk Edgerunners',
-          thumbnailUrl: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg',
+          animeId: 'custom-frieren-s2',
+          animeTitle: 'Sousou no Frieren Season 2',
+          thumbnailUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg',
+          episodeNumber: 4,
+          watchProgress: 0.65,
+          lastWatched: now.subtract(const Duration(hours: 1)),
+        ),
+        ContinueWatchingModel(
+          animeId: '11',
+          animeTitle: 'Mushoku Tensei: Isekai Ittara Honki Dasu',
+          thumbnailUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108465-1ANspF1EWyFx.jpg',
           episodeNumber: 7,
-          watchProgress: 0.68,
-          lastWatched: now.subtract(const Duration(hours: 2)),
-        ),
-        ContinueWatchingModel(
-          animeId: '145064',
-          animeTitle: 'Demon Slayer',
-          thumbnailUrl: 'https://cdn.myanimelist.net/images/anime/1286/99889l.jpg',
-          episodeNumber: 14,
-          watchProgress: 0.35,
-          lastWatched: now.subtract(const Duration(hours: 20)),
-        ),
-        ContinueWatchingModel(
-          animeId: '16498',
-          animeTitle: 'Attack on Titan',
-          thumbnailUrl: 'https://cdn.myanimelist.net/images/anime/10/47347l.jpg',
-          episodeNumber: 3,
-          watchProgress: 0.15,
-          lastWatched: now.subtract(const Duration(days: 2)),
+          watchProgress: 0.85,
+          lastWatched: now.subtract(const Duration(hours: 5)),
         ),
       ];
     }
@@ -509,7 +501,6 @@ class MockDataService {
 
   static List<AnimeModel> getMockAnimes() {
     final now = DateTime.now();
-    // Helper: next occurrence of [weekday] (1=Mon..7=Sun) at [hour]:00 local time.
     DateTime nextAiring(int weekday, int hour) {
       var d = DateTime(now.year, now.month, now.day, hour);
       var diff = (weekday - now.weekday) % 7;
@@ -521,198 +512,56 @@ class MockDataService {
 
     return [
       AnimeModel(
-        id: '101055',   // AniList: Cyberpunk Edgerunners
-        title: 'Cyberpunk Edgerunners',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx120377-ayZPoxiWt4Li.jpg',
-        rating: 9.5,
-        genres: const ['Sci-Fi', 'Action', 'Drama'],
-        description:
-            'A street kid trying to survive in a technology and body modification-obsessed city of the future.',
-        isTrending: true,
-        episodes: _buildEpisodes(10, 'Cyberpunk'),
-        releaseDay: 5,
-        nextEpisodeAt: nextAiring(5, 20),
-      ),
-      AnimeModel(
-        id: '145064',   // AniList: Demon Slayer Swordsmith Village Arc
-        title: 'Demon Slayer',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101922-WBsBl0ClmgYL.jpg',
-        rating: 9.2,
-        genres: const ['Action', 'Fantasy', 'Adventure'],
-        description:
-            'A family is attacked by demons and only two members survive.',
-        isTrending: true,
-        episodes: _buildEpisodes(26, 'DemonSlayer'),
-        releaseDay: 7,
-        nextEpisodeAt: nextAiring(7, 17),
-      ),
-      AnimeModel(
-        id: '16498',   // AniList: Attack on Titan (sama)
-        title: 'Attack on Titan',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx16498-buvcRTBx4NSm.jpg',
-        rating: 9.8,
-        genres: const ['Drama', 'Action', 'Horror'],
-        description:
-            'Humans are nearly exterminated by giant creatures called Titans.',
-        isTrending: false,
-        episodes: _buildEpisodes(25, 'AOT'),
-        releaseDay: 1,
-        nextEpisodeAt: nextAiring(1, 19),
-      ),
-      AnimeModel(
-        id: '113415',   // AniList: Jujutsu Kaisen
-        title: 'Jujutsu Kaisen',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113415-LHBAeoZDIsnF.jpg',
-        rating: 9.0,
-        genres: const ['Fantasy', 'Action', 'Horror'],
-        description:
-            'A boy swallows a cursed object and becomes a vessel for a powerful curse.',
-        isTrending: true,
-        episodes: _buildEpisodes(24, 'JJK'),
-        releaseDay: 3,
-        nextEpisodeAt: nextAiring(3, 23),
-      ),
-      AnimeModel(
-        id: '124080',   // AniList: Spy x Family
-        title: 'Spy x Family',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx140960-Kb6R5nYQfjmP.jpg',
-        rating: 8.9,
-        genres: const ['Comedy', 'Action', 'Drama'],
-        description: 'A spy builds a fake family to execute a mission.',
-        isTrending: false,
-        episodes: _buildEpisodes(12, 'SpyFamily'),
-        releaseDay: 6,
-        nextEpisodeAt: nextAiring(6, 18),
-      ),
-      AnimeModel(
-        id: '21',      // AniList: One Piece (ID sama di AniList & MAL)
-        title: 'One Piece',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21-ELSYx3yMPcKM.jpg',
-        rating: 9.4,
-        genres: const ['Adventure', 'Action', 'Comedy'],
-        description:
-            'Monkey D. Luffy sails the Grand Line to find the legendary treasure One Piece and become the Pirate King.',
-        isTrending: true,
-        episodes: _buildEpisodes(30, 'OnePiece'),
-        releaseDay: 7,
-        nextEpisodeAt: nextAiring(7, 9),
-      ),
-      AnimeModel(
-        id: '154587',   // AniList: Sousou no Frieren
-        title: 'Frieren: Beyond Journey\'s End',
+        id: 'custom-frieren',
+        title: 'Sousou no Frieren',
         imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg',
-        rating: 9.6,
-        genres: const ['Fantasy', 'Adventure', 'Drama'],
+        rating: 9.26,
+        genres: const ['Adventure', 'Award Winning', 'Drama', 'Fantasy'],
         description:
-            'An elf mage reflects on mortality and memory after outliving the human heroes she once traveled with.',
+            'During a decade-long quest to defeat the Demon King, the members of the hero party — including Himmel the priest Heiter the dwarf warrior Eisen and the elven mage Frieren — forge bonds through adventures and battles creating unforgettable memories.',
         isTrending: true,
-        episodes: _buildEpisodes(28, 'Frieren'),
-        releaseDay: 4,
-        nextEpisodeAt: nextAiring(4, 23),
+        episodes: _buildEpisodes(28, 'SousouFrieren'),
+        releaseDay: null,
+        nextEpisodeAt: null,
       ),
       AnimeModel(
-        id: '166240',   // AniList: Solo Leveling
-        title: 'Solo Leveling',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151807-it355ZgzquUd.png',
-        rating: 9.1,
-        genres: const ['Action', 'Fantasy', 'Adventure'],
+        id: 'custom-frieren-s2',
+        title: 'Sousou no Frieren Season 2',
+        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-qQTzQnEJJ3oB.jpg',
+        rating: 9.35,
+        genres: const ['Adventure', 'Fantasy', 'Drama'],
         description:
-            'The weakest hunter in the world gains the unique ability to level up infinitely after a near-death dungeon raid.',
+            'Petualangan Frieren, Fern, dan Stark berlanjut ke wilayah utara Benua Ende tempat bersemayamnya jiwa para pahlawan dan misteri sihir kuno.',
         isTrending: true,
-        episodes: _buildEpisodes(13, 'SoloLeveling'),
-        releaseDay: 6,
-        nextEpisodeAt: nextAiring(6, 23),
+        episodes: _buildEpisodes(12, 'FrierenS2'),
+        releaseDay: 5,
+        nextEpisodeAt: nextAiring(5, 23),
       ),
       AnimeModel(
-        id: '113138',   // AniList: Chainsaw Man
-        title: 'Chainsaw Man',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx127230-DdP4vAdssLoz.png',
-        rating: 8.8,
-        genres: const ['Horror', 'Action', 'Comedy'],
-        description:
-            'A young devil hunter merges with his pet chainsaw devil to become a powerful, chainsaw-headed hybrid.',
-        isTrending: false,
-        episodes: _buildEpisodes(12, 'ChainsawMan'),
-        releaseDay: 2,
-        nextEpisodeAt: nextAiring(2, 23),
-      ),
-      AnimeModel(
-        id: '147839',   // AniList: Blue Lock
-        title: 'Blue Lock',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx137822-U8naszP96vzC.png',
-        rating: 8.6,
-        genres: const ['Sports', 'Drama'],
-        description:
-            'Three hundred strikers are isolated and forced to compete in a brutal program to create Japan\'s best egoist striker.',
-        isTrending: false,
-        episodes: _buildEpisodes(24, 'BlueLock'),
-        releaseDay: 3,
-        nextEpisodeAt: nextAiring(3, 22),
-      ),
-      AnimeModel(
-        id: '108465',   // AniList: Mushoku Tensei Part 1
-        title: 'Mushoku Tensei',
+        id: '11',
+        title: 'Mushoku Tensei: Isekai Ittara Honki Dasu',
         imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108465-1ANspF1EWyFx.jpg',
         rating: 8.7,
-        genres: const ['Fantasy', 'Adventure', 'Drama'],
+        genres: const ['Fantasy', 'Isekai', 'Adventure'],
         description:
             'A shut-in is reincarnated into a magical world as Rudeus Greyrat and resolves to live this new life without regrets.',
-        isTrending: false,
-        episodes: _buildEpisodes(23, 'MushokuTensei'),
+        isTrending: true,
+        episodes: _buildEpisodes(11, 'MushokuTensei'),
         releaseDay: 5,
         nextEpisodeAt: nextAiring(5, 0),
       ),
       AnimeModel(
-        id: '150672',   // AniList: Oshi no Ko
-        title: 'Oshi no Ko',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx150672-WqmmwZ4nMzAy.png',
-        rating: 9.3,
-        genres: const ['Drama', 'Comedy'],
+        id: 'custom-mushoku-tensei-part-2',
+        title: 'Mushoku Tensei: Isekai Ittara Honki Dasu Part 2',
+        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx146065-IjirxRK26O03.png',
+        rating: 8.8,
+        genres: const ['Fantasy', 'Isekai', 'Adventure'],
         description:
-            'Reincarnated as the children of their favorite idol, twins navigate the dark, glamorous world of Japanese show business.',
+            'The second cour of Rudeus\' journey continues as new challenges and revelations unfold in the Demon Continent.',
         isTrending: true,
-        episodes: _buildEpisodes(11, 'OshiNoKo'),
-        releaseDay: 2,
-        nextEpisodeAt: nextAiring(2, 0),
-      ),
-      AnimeModel(
-        id: '101348',   // AniList: Vinland Saga S1
-        title: 'Vinland Saga',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101348-2fhDFPCuMNiz.jpg',
-        rating: 9.0,
-        genres: const ['Drama', 'Action', 'Adventure'],
-        description:
-            'A young Viking warrior seeks revenge against the man who killed his father, only to question the meaning of violence itself.',
-        isTrending: false,
-        episodes: _buildEpisodes(24, 'VinlandSaga'),
-        releaseDay: 1,
-        nextEpisodeAt: nextAiring(1, 0),
-      ),
-      AnimeModel(
-        id: '163132',   // AniList: Dungeon Meshi
-        title: 'Dungeon Meshi',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx153518-IVXPDY5ph3kO.jpg',
-        rating: 8.9,
-        genres: const ['Adventure', 'Fantasy', 'Comedy'],
-        description:
-            'A party of adventurers resorts to cooking and eating monsters to survive their dungeon-crawling quest to save a lost companion.',
-        isTrending: false,
-        episodes: _buildEpisodes(24, 'DungeonMeshi'),
-        releaseDay: 4,
-        nextEpisodeAt: nextAiring(4, 17),
-      ),
-      AnimeModel(
-        id: '166822',   // AniList: Kaiju No. 8
-        title: 'Kaiju No. 8',
-        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx153288-25FBfFJzEQ5O.jpg',
-        rating: 8.5,
-        genres: const ['Action', 'Sci-Fi', 'Comedy'],
-        description:
-            'A man who dreamed of joining the Defense Force gains the power to transform into a kaiju himself.',
-        isTrending: false,
-        episodes: _buildEpisodes(12, 'KaijuNo8'),
-        releaseDay: 6,
-        nextEpisodeAt: nextAiring(6, 23),
+        episodes: _buildEpisodes(12, 'MushokuTenseiPart2'),
+        releaseDay: 5,
+        nextEpisodeAt: nextAiring(5, 0),
       ),
     ];
   }

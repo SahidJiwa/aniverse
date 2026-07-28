@@ -13,7 +13,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:http/http.dart' as http;
 import 'anime_model.dart';
-import 'episode_model.dart';
 import 'custom_anime_catalog.dart';
 
 // ─── Serialisation helpers ──────────────────────────────────────────────────
@@ -27,7 +26,7 @@ Map<String, dynamic> _animeToJson(AnimeModel a) => {
   'description': a.description,
   'isTrending': a.isTrending,
   'releaseDay': a.releaseDay,
-  'episodeCount': a.episodes.length,
+  'episodesCount': a.episodes.length,
   'addedAt': a.addedAt?.toIso8601String(),
   'catalogEpisodeLink': a.catalogEpisodeLink,
   'trailerUrl': a.trailerUrl,
@@ -35,29 +34,12 @@ Map<String, dynamic> _animeToJson(AnimeModel a) => {
   'status': a.status,
 };
 
-Map<String, String> _parseQualities(String? raw) {
-  final out = <String, String>{};
-  if (raw == null || raw.trim().isEmpty) return out;
-
-  // Supports: "360p: url1, 720p: url2" or line separated "720p: url" or single "http..."
-  final lines = raw.split(RegExp(r'[\r\n,]+'));
-  for (final l in lines) {
-    final trimmed = l.trim();
-    if (trimmed.isEmpty) continue;
-    if (trimmed.contains(': http')) {
-      final parts = trimmed.split(': http');
-      final qLabel = parts[0].trim();
-      final url = 'http${parts[1].trim()}';
-      out[qLabel] = url;
-    } else if (trimmed.startsWith('http')) {
-      out['720p'] = trimmed;
-    }
-  }
-  return out;
-}
-
 AnimeModel _animeFromJson(Map<String, dynamic> j) {
-  final count = (j['episodeCount'] as int?) ?? (j['episodes'] as int?) ?? 12;
+  // Support all 3 key variants: episodesCount (cloud), episodeCount (legacy), episodes (Jikan)
+  final count = (j['episodesCount'] as int?)
+      ?? (j['episodeCount'] as int?)
+      ?? (j['episodes'] as int?)
+      ?? 12;
   final tag = (j['title'] as String).replaceAll(' ', '');
   final epLink = j['catalogEpisodeLink'] as String?;
   final releaseDay = j['releaseDay'] as int?;
@@ -79,7 +61,8 @@ AnimeModel _animeFromJson(Map<String, dynamic> j) {
     isTrending: j['isTrending'] as bool? ?? false,
     releaseDay: releaseDay,
     episodes: buildCatalogEpisodes(count, tag, customStreamUrl: epLink),
-    addedAt: j['addedAt'] != null ? DateTime.tryParse(j['addedAt'] as String) : DateTime.now(),
+    // Use null when addedAt absent — avoids incorrectly marking old entries as newly added
+    addedAt: j['addedAt'] != null ? DateTime.tryParse(j['addedAt'] as String) : null,
     catalogEpisodeLink: epLink,
     trailerUrl: j['trailerUrl'] as String?,
     placement: placement,
@@ -101,15 +84,10 @@ class CatalogStore extends ChangeNotifier {
 
   bool get isReady => _ready;
 
-  // ── All entries: hardcoded first, then user entries (deduplicated by id) ──
+  // ── All entries: User/Admin entries from Cloud CMS, fallback to baseline ──
   List<AnimeModel> get all {
-    final hardcoded = CustomAnimeCatalog.all;
-    final seen = <String>{};
-    final out = <AnimeModel>[];
-    for (final a in [...hardcoded, ..._userEntries]) {
-      if (seen.add(a.id)) out.add(a);
-    }
-    return out;
+    if (_userEntries.isNotEmpty) return _userEntries;
+    return CustomAnimeCatalog.all;
   }
 
   /// Entries added within the last 14 days (user-added only)
@@ -155,33 +133,31 @@ class CatalogStore extends ChangeNotifier {
     _ready = true;
     notifyListeners();
 
-    // Background sync from Cloud Remote Endpoint
-    syncFromCloud();
+    // Background sync from Cloud Remote Endpoint & setup auto-refresh
+    await syncFromCloud();
   }
 
-  Future<void> syncFromCloud() async {
+  /// Sync real-time dengan Admin CMS Cloud JSON.
+  /// Cloud JSON adalah Authoritative Single Source of Truth.
+  Future<int> syncFromCloud() async {
     try {
-      final res = await http.get(Uri.parse(_kCloudUrl)).timeout(const Duration(seconds: 8));
+      final res = await http.get(Uri.parse(_kCloudUrl)).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final listRaw = jsonDecode(res.body) as List<dynamic>;
         final cloudEntries = listRaw.map((e) => _animeFromJson(e as Map<String, dynamic>)).toList();
 
-        final seen = <String>{..._userEntries.map((a) => a.id)};
-        bool updated = false;
-        for (final item in cloudEntries) {
-          if (seen.add(item.id)) {
-            _userEntries.add(item);
-            updated = true;
-          }
-        }
-        if (updated) {
+        if (cloudEntries.isNotEmpty) {
+          _userEntries = cloudEntries;
           await _save();
           notifyListeners();
+          debugPrint('[CatalogStore] Realtime sync success: ${cloudEntries.length} anime loaded from Admin CMS.');
+          return cloudEntries.length;
         }
       }
     } catch (e) {
-      debugPrint('[CatalogStore] cloud sync skipped or offline: $e');
+      debugPrint('[CatalogStore] Cloud sync offline fallback to local cache: $e');
     }
+    return _userEntries.length;
   }
 
   Future<void> _save() async {
@@ -218,14 +194,16 @@ class CatalogStore extends ChangeNotifier {
 
   bool isUserEntry(String id) => _userEntries.any((a) => a.id == id);
 
-  // ── Merge with live API results ───────────────────────────────────────────
+  // ── Strict custom catalog (no live API mixing) ────────────────────────────
+  /// Returns ONLY the curated catalog entries (hardcoded + user-added via CMS).
+  /// Use this everywhere the app must show ONLY Mushoku Tensei / Frieren.
+  /// Unlike [mergeWithLive], this never includes live Jikan/AniList results.
+  List<AnimeModel> getCustomCatalog() => all;
 
+  // ── Strict custom catalog (no live API mixing) ────────────────────────────
+  /// Balikin HANYA anime yang terdaftar di Admin CMS.
+  /// Memastikan tidak ada anime luar yang masuk dari API publik.
   List<AnimeModel> mergeWithLive(List<AnimeModel> live) {
-    final seen = <String>{};
-    final out = <AnimeModel>[];
-    for (final a in [...all, ...live]) {
-      if (seen.add(a.id)) out.add(a);
-    }
-    return out;
+    return all;
   }
 }

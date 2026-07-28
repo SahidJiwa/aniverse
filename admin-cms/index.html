@@ -6,13 +6,18 @@
   <title>AniVerse Studio — Private Admin Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
   <!-- Pin Lock Modal -->
   <div id="auth-modal" class="auth-overlay">
     <div class="auth-card">
+      <div class="auth-aura"></div>
       <div class="brand-logo">
         <div class="logo-icon">⚡</div>
         <h2>AniVerse Studio</h2>
@@ -21,116 +26,246 @@
       <form id="auth-form" onsubmit="handleLogin(event)">
         <div class="form-group">
           <label for="admin-pin">PIN Akses Admin</label>
-          <input type="password" id="admin-pin" placeholder="Masukkan PIN Admin (default: 8888)" required autocomplete="current-password">
+          <div class="pin-input-wrap">
+            <span class="pin-icon">🔐</span>
+            <input type="password" id="admin-pin" placeholder="Masukkan PIN Admin (default: 8888)" required autocomplete="current-password">
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">
-          <span>Masuk Ke Dashboard</span> ➔
+        <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+          <span>Masuk Ke Dashboard</span>
+          <span class="btn-arrow">→</span>
         </button>
-        <p id="auth-error" class="error-text hidden">PIN salah! Silakan coba lagi.</p>
+        <p id="auth-error" class="error-text hidden">⛔ PIN salah! Silakan coba lagi.</p>
       </form>
     </div>
   </div>
 
   <!-- Main Dashboard UI -->
   <div id="app-dashboard" class="app-container hidden">
+
     <!-- Sidebar Navigation -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="logo-icon-sm">⚡</div>
         <div class="brand-title">AniVerse Studio</div>
       </div>
 
+      <div class="sidebar-version">Admin Portal v2.0</div>
+
       <nav class="nav-menu">
-        <button class="nav-item active" onclick="switchTab('catalog')">
-          <span class="icon">🎬</span> Katalog Anime
+        <button class="nav-item active" id="nav-catalog" onclick="switchTab('catalog', this)">
+          <span class="nav-icon">🎬</span>
+          <span class="nav-label">Katalog Anime</span>
         </button>
-        <button class="nav-item" onclick="openAddModal()">
-          <span class="icon">➕</span> Tambah Anime Baru
+        <button class="nav-item" id="nav-stats" onclick="switchTab('stats', this)">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Statistik</span>
         </button>
-        <button class="nav-item" onclick="switchTab('settings')">
-          <span class="icon">⚙️</span> Pengaturan Admin
+        <button class="nav-item" id="nav-settings" onclick="switchTab('settings', this)">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Pengaturan</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
+        <div class="sidebar-user-info">
+          <div class="user-avatar">👤</div>
+          <div>
+            <div class="user-name">Admin Master</div>
+            <div class="user-role">Super Administrator</div>
+          </div>
+        </div>
         <button class="btn-logout" onclick="handleLogout()">
-          <span class="icon">🔒</span> Kunci Dashboard
+          <span>🔒</span> Kunci Dashboard
         </button>
       </div>
     </aside>
 
     <!-- Main Content Area -->
     <main class="main-content">
+
       <!-- Header Bar -->
       <header class="top-bar">
         <div class="search-box">
           <span class="search-icon">🔍</span>
           <input type="text" id="search-input" placeholder="Cari anime berdasarkan judul..." oninput="handleSearch()">
+          <button class="search-clear hidden" id="search-clear" onclick="clearSearch()">✕</button>
         </div>
 
-        <div class="user-profile">
-          <span class="status-badge live">● Online</span>
-          <span class="admin-tag">Admin Master</span>
+        <div class="header-actions">
+          <button class="btn btn-sync header-sync-btn" onclick="syncToAniVerseApp()" title="Singkronkan data katalog terbaru langsung ke aplikasi mobile AniVerse">
+            <span>⚡ Singkronkan ke AniVerse</span>
+          </button>
+          <button class="btn btn-accent header-add-btn" onclick="openAddModal()">
+            <span>+ Tambah Anime</span>
+          </button>
+          <div class="user-profile">
+            <span class="status-badge live">● Online</span>
+            <span class="admin-tag">Admin Master</span>
+          </div>
         </div>
       </header>
 
       <!-- View: Catalog List -->
-      <section id="view-catalog" class="view-section active">
+      <section id="view-catalog" class="view-section">
+
+        <!-- Stats Strip -->
+        <div class="stats-strip">
+          <div class="stat-card">
+            <div class="stat-icon">🎬</div>
+            <div class="stat-body">
+              <div class="stat-num" id="stat-total">0</div>
+              <div class="stat-label">Total Anime</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-body">
+              <div class="stat-num trending-num" id="stat-trending">0</div>
+              <div class="stat-label">Trending</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🟢</div>
+            <div class="stat-body">
+              <div class="stat-num ongoing-num" id="stat-ongoing">0</div>
+              <div class="stat-label">On-Going</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">✨</div>
+            <div class="stat-body">
+              <div class="stat-num custom-num" id="stat-custom">0</div>
+              <div class="stat-label">Anime Kustom</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">▶️</div>
+            <div class="stat-body">
+              <div class="stat-num stream-num" id="stat-stream">0</div>
+              <div class="stat-label">Punya Stream</div>
+            </div>
+          </div>
+        </div>
+
         <div class="section-header">
           <div>
             <h2>Katalog Anime</h2>
             <p class="subtitle">Kelola daftar anime, video streaming, episode, dan trailer YouTube</p>
           </div>
-          <button class="btn btn-accent" onclick="openAddModal()">
-            <span>+ Tambah Anime</span>
-          </button>
+          <div class="section-actions">
+            <button class="btn btn-secondary" onclick="sortCatalog()" id="sort-btn" title="Urutkan">
+              ↕ Urutkan
+            </button>
+          </div>
         </div>
 
         <!-- Filter Tabs -->
         <div class="filter-bar">
-          <button class="chip active" onclick="filterCategory('all', this)">Semua Anime (<span id="count-all">0</span>)</button>
+          <button class="chip active" onclick="filterCategory('all', this)">Semua (<span id="count-all">0</span>)</button>
           <button class="chip" onclick="filterCategory('trending', this)">🔥 Trending (<span id="count-trending">0</span>)</button>
-          <button class="chip" onclick="filterCategory('custom', this)">✨ Anime Kustom Saya (<span id="count-custom">0</span>)</button>
+          <button class="chip" onclick="filterCategory('custom', this)">✨ Kustom Saya (<span id="count-custom">0</span>)</button>
+          <button class="chip" onclick="filterCategory('stream', this)">▶ Punya Link (<span id="count-stream">0</span>)</button>
+          <button class="chip" onclick="filterCategory('nostream', this)">⚠ Belum Ada Link (<span id="count-nostream">0</span>)</button>
+        </div>
+
+        <!-- View Toggle -->
+        <div class="view-toggle-bar">
+          <button class="view-toggle-btn active" id="vt-grid" onclick="setViewMode('grid', this)" title="Grid View">▦ Grid</button>
+          <button class="view-toggle-btn" id="vt-list" onclick="setViewMode('list', this)" title="List View">☰ List</button>
+          <span class="view-count-label" id="view-count-label"></span>
         </div>
 
         <!-- Anime Cards Grid -->
         <div id="anime-grid" class="anime-grid">
           <!-- Dynamically populated -->
         </div>
+
+        <!-- Undo Banner -->
+        <div id="undo-banner" class="undo-banner hidden">
+          <span id="undo-text">Anime dihapus.</span>
+          <button onclick="undoDelete()" class="undo-btn">↩ Batalkan</button>
+        </div>
+
+      </section>
+
+      <!-- View: Stats -->
+      <section id="view-stats" class="view-section hidden">
+        <div class="section-header">
+          <div>
+            <h2>📊 Statistik Katalog</h2>
+            <p class="subtitle">Analisis mendalam koleksi anime kamu</p>
+          </div>
+        </div>
+        <div id="stats-content"><!-- rendered by JS --></div>
       </section>
 
       <!-- View: Settings -->
       <section id="view-settings" class="view-section hidden">
         <div class="section-header">
-          <h2>Pengaturan Portal Admin</h2>
-          <p class="subtitle">Konfigurasi PIN Keamanan & Ekspor Data</p>
+          <div>
+            <h2>⚙️ Pengaturan Portal Admin</h2>
+            <p class="subtitle">Konfigurasi PIN Keamanan & Data Sync</p>
+          </div>
         </div>
 
-        <div class="settings-card">
-          <h3>Ganti PIN Admin</h3>
-          <p class="desc">Ubah PIN default (8888) dengan PIN rahasia kamu sendiri.</p>
-          <form onsubmit="handleChangePin(event)" class="settings-form">
-            <div class="form-group">
-              <label>PIN Baru</label>
-              <input type="password" id="new-pin" placeholder="Masukkan PIN baru" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Simpan PIN Baru</button>
-          </form>
-        </div>
-
-        <div class="settings-card danger">
-          <h3>👥 Kolaborasi & Sync Otomatis Cloud</h3>
-          <p class="desc" style="margin-bottom: 12px;">Ajak temanmu bantu mengisi data anime dari jarak jauh. Sistem otomatis menggabungkan data tanpa duplikat!</p>
-
-          <div style="background: rgba(46,213,115,0.08); border: 1px solid rgba(46,213,115,0.25); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: #2ed573; line-height: 1.8;">
-            <b>⚡ Cloud Sync Terhubung:</b><br>
-            Setiap kali kamu mengunggah atau mengunduh data JSON dari CMS, file <code>catalog_cloud.json</code> akan disinkronkan ke aplikasi AniVerse secara otomatis tanpa harus install ulang APK/IPA!
+        <div class="settings-grid">
+          <div class="settings-card">
+            <div class="settings-card-icon">🔑</div>
+            <h3>Ganti PIN Admin</h3>
+            <p class="desc">Ubah PIN default (8888) dengan PIN rahasia kamu sendiri untuk keamanan lebih baik.</p>
+            <form onsubmit="handleChangePin(event)" class="settings-form">
+              <div class="form-group">
+                <label>PIN Baru (min. 4 karakter)</label>
+                <input type="password" id="new-pin" placeholder="Masukkan PIN baru" required minlength="4">
+              </div>
+              <div class="form-group">
+                <label>Konfirmasi PIN Baru</label>
+                <input type="password" id="confirm-pin" placeholder="Ulangi PIN baru" required>
+              </div>
+              <button type="submit" class="btn btn-primary">💾 Simpan PIN Baru</button>
+            </form>
           </div>
 
-          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn btn-secondary" onclick="exportCatalogJSON()">📥 Download Data JSON Saya</button>
-            <button class="btn btn-primary" onclick="exportFriendTemplate()">📄 Beri Template Ke Teman</button>
-            <button class="btn btn-accent" onclick="document.getElementById('import-file').click()">📤 Impor JSON Dari Teman</button>
+          <div class="settings-card">
+            <div class="settings-card-icon">🔄</div>
+            <h3>Reset Katalog ke Default</h3>
+            <p class="desc">Hapus semua entri kustom dan kembalikan katalog ke data bawaan aplikasi. <b style="color:#ff4757;">Tindakan ini tidak bisa dibatalkan!</b></p>
+            <button class="btn btn-danger" onclick="resetToDefault()">🗑 Reset Ke Default</button>
+          </div>
+
+          <div class="settings-card full-width">
+            <div class="settings-card-icon">☁️</div>
+            <h3>Kolaborasi & Data Management</h3>
+            <p class="desc">Ekspor data, buat template untuk rekan, atau impor kontribusi dari luar.</p>
+
+            <div class="cloud-status-badge">
+              <span class="cloud-dot"></span>
+              <b>Cloud Sync Aktif</b> — Data tersimpan di localStorage browser dan siap dibaca AniVerse App.
+            </div>
+
+            <div class="data-actions-grid">
+              <button class="data-action-card" onclick="exportCatalogJSON()">
+                <div class="da-icon">📥</div>
+                <div class="da-title">Download JSON Saya</div>
+                <div class="da-desc">Export semua anime kustom ke file .json</div>
+              </button>
+              <button class="data-action-card" onclick="exportAllJSON()">
+                <div class="da-icon">📦</div>
+                <div class="da-title">Download Semua Data</div>
+                <div class="da-desc">Export seluruh katalog termasuk default</div>
+              </button>
+              <button class="data-action-card" onclick="exportFriendTemplate()">
+                <div class="da-icon">📄</div>
+                <div class="da-title">Template Untuk Teman</div>
+                <div class="da-desc">Beri template JSON kosong ke rekan</div>
+              </button>
+              <button class="data-action-card accent" onclick="document.getElementById('import-file').click()">
+                <div class="da-icon">📤</div>
+                <div class="da-title">Import JSON Dari Teman</div>
+                <div class="da-desc">Merge data dari luar tanpa duplikat</div>
+              </button>
+            </div>
             <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importCatalogJSON(event)">
           </div>
         </div>
@@ -139,161 +274,273 @@
   </div>
 
   <!-- Add/Edit Anime Modal -->
-  <div id="anime-modal" class="modal-overlay hidden">
-    <div class="modal-card">
+  <div id="anime-modal" class="modal-overlay hidden" onclick="handleModalOverlayClick(event)">
+    <div class="modal-card" id="modal-card">
       <div class="modal-header">
-        <h3 id="modal-title">Tambah Anime Baru</h3>
-        <button class="close-btn" onclick="closeAnimeModal()">✕</button>
+        <div class="modal-title-area">
+          <div class="modal-icon">🎬</div>
+          <h3 id="modal-title">Tambah Anime Baru</h3>
+        </div>
+        <button class="close-btn" onclick="closeAnimeModal()" title="Tutup">✕</button>
       </div>
 
-      <form id="anime-form" onsubmit="handleSaveAnime(event)" class="modal-body">
+      <!-- Modal Tab Nav -->
+      <div class="modal-tab-nav">
+        <button class="mtab active" data-tab="info" onclick="switchModalTab('info', this)">📋 Info Dasar</button>
+        <button class="mtab" data-tab="media" onclick="switchModalTab('media', this)">🖼 Media & Link</button>
+        <button class="mtab" data-tab="episodes" onclick="switchModalTab('episodes', this)">▶ Episode & Stream</button>
+        <button class="mtab" data-tab="placement" onclick="switchModalTab('placement', this)">📍 Penempatan</button>
+      </div>
+
+      <form id="anime-form" onsubmit="handleSaveAnime(event)">
         <input type="hidden" id="anime-id">
+        <input type="hidden" id="field-watch">
 
-        <div class="form-row">
-          <div class="form-group flex-2">
-            <label>Judul Anime *</label>
-            <input type="text" id="field-title" placeholder="Contoh: Solo Leveling Season 2" required>
+        <!-- TAB: Info Dasar -->
+        <div class="modal-tab-content active" id="mtab-info">
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label>Judul Anime <span class="req">*</span></label>
+              <input type="text" id="field-title" placeholder="Contoh: Solo Leveling Season 2" required>
+            </div>
+            <div class="form-group flex-1">
+              <label>Rating (0.0 – 10.0)</label>
+              <input type="number" id="field-rating" step="0.1" min="0" max="10" placeholder="8.5" value="8.5">
+            </div>
           </div>
-          <div class="form-group flex-1">
-            <label>Rating (0.0 - 10.0)</label>
-            <input type="number" id="field-rating" step="0.1" min="0" max="10" placeholder="8.5" value="8.5">
+
+          <div class="form-group">
+            <label>Deskripsi / Sinopsis <span class="req">*</span></label>
+            <textarea id="field-desc" rows="4" placeholder="Tulis deskripsi atau sinopsis singkat anime..." required></textarea>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label>Deskripsi / Sinopsis *</label>
-          <textarea id="field-desc" rows="3" placeholder="Tulis deskripsi atau sinopsis singkat anime..." required></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Link Poster / Cover URL (AniList / Direct URL) *</label>
-          <input type="url" id="field-image" placeholder="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/..." required>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>🎬 Link Trailer YouTube (Opsional)</label>
-            <input type="url" id="field-trailer" placeholder="https://www.youtube.com/watch?v=...">
+          <div class="form-group">
+            <label>Genre (pisahkan dengan koma)</label>
+            <input type="text" id="field-genres" placeholder="Action, Fantasy, Adventure">
+            <div class="genre-presets" id="genre-presets">
+              <!-- populated by JS -->
+            </div>
           </div>
-        </div>
 
-        <!-- Multi-Quality Episode Link Manager UI -->
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-            <label style="font-weight: 600; color: #00f2fe; margin:0;">▶️ Kelola Link Video Per Episode</label>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 12px; color: #94a3b8;">Cari Eps:</span>
-              <input type="number" id="episode-search" placeholder="No. Eps" min="1" oninput="jumpToEpisodeSearch()" style="width: 75px; padding: 4px 8px; background: #0f172a; color: #00f2fe; border: 1px solid #00f2fe; border-radius: 6px; font-weight: 700; text-align: center;">
-              <span style="font-size: 12px; color: #94a3b8;">atau Pilih:</span>
-              <select id="episode-select" onchange="renderEpisodeQualityInputs()" style="padding: 4px 10px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; font-weight: 600;">
-                <!-- Populated dynamically (Episode 1, Episode 2...) -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Status Penayangan</label>
+              <select id="field-status">
+                <option value="Ongoing">🟢 On-Going (Belum Tamat)</option>
+                <option value="Finished Airing">🏁 Tamat (Finished Airing)</option>
+              </select>
+            </div>
+            <div class="form-group flex-1">
+              <label>Jumlah Episode</label>
+              <input type="number" id="field-episodes" min="1" value="12" placeholder="12" oninput="onEpisodeCountChange()">
+            </div>
+            <div class="form-group flex-1">
+              <label>Hari Rilis (Jadwal)</label>
+              <select id="field-release-day">
+                <option value="">-- Tidak Berjadwal --</option>
+                <option value="1">Senin</option>
+                <option value="2">Selasa</option>
+                <option value="3">Rabu</option>
+                <option value="4">Kamis</option>
+                <option value="5">Jumat</option>
+                <option value="6">Sabtu</option>
+                <option value="7">Minggu</option>
               </select>
             </div>
           </div>
 
-          <!-- Progress Bar -->
-          <div style="margin-bottom: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span id="ep-current-label" style="font-size: 12px; font-weight: 700; color: #e2e8f0;">Episode 1</span>
-              <span id="ep-progress-label" style="font-size: 11px; color: #94a3b8;">0/12 episode terisi (0%)</span>
-            </div>
-            <div style="background: rgba(255,255,255,0.06); border-radius: 999px; height: 5px; overflow: hidden;">
-              <div id="ep-progress-bar" style="height: 100%; width: 0%; border-radius: 999px; transition: width 0.3s ease, background 0.3s ease;"></div>
-            </div>
-          </div>
-
-          <p style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">Isi link video untuk 4 kualitas pada episode yang dipilih. <b>✅</b> = lengkap, <b>⚠️</b> = sebagian terisi, kosong = belum diisi.</p>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group" style="margin:0;">
-              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 360p</label>
-              <input type="url" id="link-360p" placeholder="https://server.com/ep1-360p.mp4" oninput="saveCurrentEpisodeQualities()">
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 480p</label>
-              <input type="url" id="link-480p" placeholder="https://server.com/ep1-480p.mp4" oninput="saveCurrentEpisodeQualities()">
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 720p (HD)</label>
-              <input type="url" id="link-720p" placeholder="https://server.com/ep1-720p.mp4" oninput="saveCurrentEpisodeQualities()">
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label style="font-size: 11px; color:#38bdf8;">🎬 Link 1080p (FHD)</label>
-              <input type="url" id="link-1080p" placeholder="https://server.com/ep1-1080p.mp4" oninput="saveCurrentEpisodeQualities()">
-            </div>
-          </div>
-
-          <!-- Hidden storage field for serialization -->
-          <input type="hidden" id="field-watch">
-        </div>
-
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>Jumlah Episode</label>
-            <input type="number" id="field-episodes" min="1" value="12" placeholder="12" oninput="populateEpisodeSelectDropdown()">
-          </div>
-          <div class="form-group flex-1">
-            <label>Hari Rilis (Jadwal)</label>
-            <select id="field-release-day">
-              <option value="">-- Tidak Berjadwal --</option>
-              <option value="1">Senin</option>
-              <option value="2">Selasa</option>
-              <option value="3">Rabu</option>
-              <option value="4">Kamis</option>
-              <option value="5">Jumat</option>
-              <option value="6">Sabtu</option>
-              <option value="7">Minggu</option>
-            </select>
-          </div>
-          <div class="form-group flex-1">
-            <label>Status Penayangan</label>
-            <select id="field-status">
-              <option value="Ongoing">🟢 On-Going (Belum Tamat)</option>
-              <option value="Finished Airing">🏁 Tamat (Finished Airing)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Genre (Pisahkan dengan Koma)</label>
-          <input type="text" id="field-genres" placeholder="Action, Fantasy, Adventure" value="Action, Fantasy">
-        </div>
-
-        <div class="form-checkbox">
-          <label>
-            <input type="checkbox" id="field-trending">
-            <span>Tandai sebagai Anime 🔥 Trending / Spotlight</span>
-          </label>
-        </div>
-
-        <!-- Placement Selector -->
-        <div style="margin-top: 12px; margin-bottom: 4px;">
-          <label style="font-weight: 600; color: #e2e8f0; font-size: 13px;">📍 Tampilkan di Layar Mana?</label>
-          <p style="font-size: 11px; color: #94a3b8; margin: 4px 0 10px;">Pilih satu atau lebih tempat untuk anime ini muncul di aplikasi AniVerse.</p>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-            <label class="placement-chip" id="chip-explore">
-              <input type="checkbox" name="placement" value="explore" checked> 🔍 Explore (Default)
-            </label>
-            <label class="placement-chip" id="chip-jadwal">
-              <input type="checkbox" name="placement" value="jadwal"> 📅 Jadwal (Hari Rilis)
-            </label>
-            <label class="placement-chip" id="chip-home_new">
-              <input type="checkbox" name="placement" value="home_new"> ✨ Home — Baru Ditambahkan
-            </label>
-            <label class="placement-chip" id="chip-home_trending">
-              <input type="checkbox" name="placement" value="home_trending"> 🔥 Home — Trending Now
-            </label>
-            <label class="placement-chip" id="chip-home_featured">
-              <input type="checkbox" name="placement" value="home_featured"> 🌟 Home — Hero / Featured
+          <div class="form-checkbox-fancy">
+            <label class="fancy-check">
+              <input type="checkbox" id="field-trending">
+              <span class="check-box"></span>
+              <span class="check-label">🔥 Tandai sebagai Anime Trending / Spotlight</span>
             </label>
           </div>
         </div>
 
+        <!-- TAB: Media & Link -->
+        <div class="modal-tab-content" id="mtab-media">
+          <div class="form-group">
+            <label>Link Poster / Cover URL <span class="req">*</span></label>
+            <input type="url" id="field-image" placeholder="https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/..." oninput="previewImage()">
+            <div class="img-preview-wrap" id="img-preview-wrap">
+              <img id="img-preview" src="" alt="Preview Cover" class="hidden">
+              <div id="img-preview-placeholder" class="img-placeholder">🖼 Preview cover akan muncul di sini</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>🎬 Link Trailer YouTube (Opsional)</label>
+            <input type="url" id="field-trailer" placeholder="https://www.youtube.com/watch?v=...">
+            <div id="trailer-preview" class="trailer-preview hidden">
+              <iframe id="trailer-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+            <button type="button" class="btn-preview-trailer" onclick="previewTrailer()" id="trailer-preview-btn" style="display:none;">▶ Preview Trailer</button>
+          </div>
+        </div>
+
+        <!-- TAB: Episodes & Stream -->
+        <div class="modal-tab-content" id="mtab-episodes">
+          <div class="ep-manager">
+            <div class="ep-manager-header">
+              <div class="ep-header-left">
+                <h4>▶️ Kelola Link Video Per Episode</h4>
+                <p>Isi link video untuk setiap episode. ✅ = semua kualitas terisi · ⚠️ = sebagian · kosong = belum diisi.</p>
+              </div>
+              <div class="ep-header-right">
+                <div class="ep-jump-wrap">
+                  <label>Lompat ke Eps:</label>
+                  <input type="number" id="episode-search" placeholder="No." min="1" oninput="jumpToEpisodeSearch()">
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="ep-progress-container">
+              <div class="ep-progress-header">
+                <span id="ep-current-label">Episode 1</span>
+                <span id="ep-progress-label" class="ep-progress-label">0/12 episode (0%)</span>
+              </div>
+              <div class="ep-progress-track">
+                <div id="ep-progress-bar" class="ep-progress-fill"></div>
+              </div>
+            </div>
+
+            <!-- Episode Selector Grid (mini thumbnails for fast nav) -->
+            <div class="ep-grid-nav" id="ep-grid-nav">
+              <!-- populated by JS -->
+            </div>
+
+            <!-- Episode dropdown (backup) -->
+            <div class="ep-dropdown-row">
+              <label>Episode:</label>
+              <select id="episode-select" onchange="onEpisodeSelectChange()">
+                <!-- Populated dynamically -->
+              </select>
+              <button type="button" class="btn btn-secondary ep-prev-btn" onclick="navEpisode(-1)">◀ Prev</button>
+              <button type="button" class="btn btn-secondary ep-next-btn" onclick="navEpisode(1)">Next ▶</button>
+            </div>
+
+            <!-- Quality Link Inputs -->
+            <div class="quality-grid">
+              <div class="quality-input-card">
+                <div class="quality-badge q360">360p</div>
+                <div class="form-group" style="margin:0;">
+                  <input type="url" id="link-360p" placeholder="https://server.com/ep1-360p.mp4" oninput="onLinkInput()">
+                </div>
+              </div>
+              <div class="quality-input-card">
+                <div class="quality-badge q480">480p</div>
+                <div class="form-group" style="margin:0;">
+                  <input type="url" id="link-480p" placeholder="https://server.com/ep1-480p.mp4" oninput="onLinkInput()">
+                </div>
+              </div>
+              <div class="quality-input-card">
+                <div class="quality-badge q720">720p HD</div>
+                <div class="form-group" style="margin:0;">
+                  <input type="url" id="link-720p" placeholder="https://server.com/ep1-720p.mp4" oninput="onLinkInput()">
+                </div>
+              </div>
+              <div class="quality-input-card">
+                <div class="quality-badge q1080">1080p FHD</div>
+                <div class="form-group" style="margin:0;">
+                  <input type="url" id="link-1080p" placeholder="https://server.com/ep1-1080p.mp4" oninput="onLinkInput()">
+                </div>
+              </div>
+            </div>
+
+            <div class="ep-actions-row">
+              <button type="button" class="btn btn-secondary" onclick="copyLinkToAll()">📋 Salin Semua Link ke Eps Lain</button>
+              <button type="button" class="btn btn-secondary" onclick="clearCurrentEpLinks()">🗑 Hapus Link Eps Ini</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Placement -->
+        <div class="modal-tab-content" id="mtab-placement">
+          <div class="placement-section">
+            <h4>📍 Tampilkan di Layar Mana?</h4>
+            <p>Pilih satu atau lebih tempat untuk anime ini muncul di aplikasi AniVerse. Minimal satu harus dipilih.</p>
+
+            <div class="placement-cards-grid">
+              <label class="placement-card-opt">
+                <input type="checkbox" name="placement" value="explore" checked>
+                <div class="pco-content">
+                  <div class="pco-icon">🔍</div>
+                  <div class="pco-title">Explore</div>
+                  <div class="pco-desc">Halaman pencarian & katalog utama</div>
+                </div>
+                <div class="pco-check">✓</div>
+              </label>
+              <label class="placement-card-opt">
+                <input type="checkbox" name="placement" value="jadwal">
+                <div class="pco-content">
+                  <div class="pco-icon">📅</div>
+                  <div class="pco-title">Jadwal</div>
+                  <div class="pco-desc">Jadwal tayangan mingguan</div>
+                </div>
+                <div class="pco-check">✓</div>
+              </label>
+              <label class="placement-card-opt">
+                <input type="checkbox" name="placement" value="home_new">
+                <div class="pco-content">
+                  <div class="pco-icon">✨</div>
+                  <div class="pco-title">Home — Baru</div>
+                  <div class="pco-desc">Seksi "Baru Ditambahkan" di Home</div>
+                </div>
+                <div class="pco-check">✓</div>
+              </label>
+              <label class="placement-card-opt">
+                <input type="checkbox" name="placement" value="home_trending">
+                <div class="pco-content">
+                  <div class="pco-icon">🔥</div>
+                  <div class="pco-title">Home — Trending</div>
+                  <div class="pco-desc">Seksi "Trending Now" di Home</div>
+                </div>
+                <div class="pco-check">✓</div>
+              </label>
+              <label class="placement-card-opt">
+                <input type="checkbox" name="placement" value="home_featured">
+                <div class="pco-content">
+                  <div class="pco-icon">🌟</div>
+                  <div class="pco-title">Home — Hero</div>
+                  <div class="pco-desc">Banner utama di bagian atas Home</div>
+                </div>
+                <div class="pco-check">✓</div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="closeAnimeModal()">Batal</button>
-          <button type="submit" class="btn btn-accent">Simpan Ke Katalog</button>
+          <div class="modal-footer-left">
+            <button type="button" class="btn btn-ghost" onclick="prevModalTab()">◀ Kembali</button>
+            <button type="button" class="btn btn-secondary" onclick="nextModalTab()">Lanjut ▶</button>
+          </div>
+          <div class="modal-footer-right">
+            <button type="button" class="btn btn-secondary" onclick="closeAnimeModal()">Batal</button>
+            <button type="submit" class="btn btn-accent" id="save-btn">
+              <span id="save-btn-text">💾 Simpan Ke Katalog</span>
+            </button>
+          </div>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="delete-modal" class="modal-overlay hidden" onclick="if(event.target===this) closeDeleteModal()">
+    <div class="modal-card small-modal">
+      <div class="delete-modal-content">
+        <div class="delete-icon">🗑</div>
+        <h3 id="delete-title">Hapus Anime?</h3>
+        <p id="delete-desc">Anime ini akan dihapus dari katalog. Kamu bisa membatalkan dalam 5 detik.</p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 16px;">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">Batal</button>
+        <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDelete()">🗑 Ya, Hapus</button>
+      </div>
     </div>
   </div>
 

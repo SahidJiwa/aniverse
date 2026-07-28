@@ -672,45 +672,12 @@ class _JadwalScreenState extends State<JadwalScreen>
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
-      _loading = true;
+      _animes = CatalogStore.instance.getCustomCatalog();
+      _loading = false;
       _failed = false;
     });
-    try {
-      final a = await AnimeApiService.fetchCurrentSeasonAnime();
-      if (!mounted) return;
-      if (a.isEmpty) throw Exception('empty');
-      // Merge custom-catalog entries that have 'jadwal' placement or a releaseDay set
-      final customJadwal = CatalogStore.instance.userEntries.where((c) {
-        return c.releaseDay != null ||
-            c.placement.contains('jadwal') ||
-            c.placement.contains('explore') ||
-            c.placement.contains('home_trending') ||
-            c.placement.contains('home_new');
-      }).toList();
-      final merged = CatalogStore.instance.mergeWithLive(a);
-      setState(() {
-        _animes = merged;
-        _loading = false;
-      });
-    } catch (_) {
-      try {
-        final mock = MockDataService.getMockAnimes();
-        final merged = CatalogStore.instance.mergeWithLive(mock);
-        if (!mounted) return;
-        setState(() {
-          _animes = merged;
-          _loading = false;
-        });
-      } catch (_) {
-        if (!mounted) return;
-        setState(() {
-          _animes = const [];
-          _loading = false;
-          _failed = true;
-        });
-      }
-    }
   }
 
   int _dayOf(AnimeModel a) => a.releaseDay != null ? (a.releaseDay! - 1).clamp(0, 6) : a.id.hashCode.abs() % 7;

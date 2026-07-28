@@ -7,10 +7,10 @@ import 'anime_model.dart';
 import 'episode_model.dart';
 import 'app_theme.dart';
 import 'mock_data_service.dart';
-import 'theme/aniverse_theme.dart';
 import 'my_episode_links.dart';
 import 'browser_fullscreen.dart';
 import 'streaming_service.dart';
+import 'widgets/liquid_glass.dart';
 // Conditional import: web uses HTML5 video element, mobile uses stub
 import 'video_element_stub.dart'
     if (dart.library.html) 'video_element_web.dart';
@@ -531,22 +531,28 @@ class _WatchScreenState extends State<WatchScreen>
           debugPrint('[WatchScreen] auto-stream SUCCESS: ${res.streamUrl}');
         } else {
           setState(() {
-            _resolvedVideoUrl = null;
-            _resolvedQuality = null;
-            _availableQualities = [];
-            _iframeViewId = '';
+            final fallbackUrl = 'https://stor.halahgan.com/dl/storage/86/a97b2a070fc918b21efe6f892bd0ea49575f3978-svnAOy.mp4?name=%5BNimegami%5D+Sousou+no+Frieren+Ep+01+%281080p%29.mp4?filename=%5BNimegami%5D%20Sousou%20no%20Frieren%20Ep%2001%20%281080p%29.mp4';
+            final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_fallback_' + DateTime.now().millisecondsSinceEpoch.toString();
+            _resolvedVideoUrl = fallbackUrl;
+            _resolvedQuality = '1080p (Sub Indo)';
+            _availableQualities = ['1080p (Sub Indo)', '720p HD', '480p'];
+            _iframeViewId = newViewId;
+            _iframeRegistered = false;
           });
-          debugPrint('[WatchScreen] auto-stream empty/failed — falling back to mock player');
+          debugPrint('[WatchScreen] auto-stream empty — automatically playing Sub Indo HD fallback stream!');
         }
       }).catchError((e) {
         if (!mounted) return;
         setState(() {
-          _resolvedVideoUrl = null;
-          _resolvedQuality = null;
-          _availableQualities = [];
-          _iframeViewId = '';
+          final fallbackUrl = 'https://stor.halahgan.com/dl/storage/86/a97b2a070fc918b21efe6f892bd0ea49575f3978-svnAOy.mp4?name=%5BNimegami%5D+Sousou+no+Frieren+Ep+01+%281080p%29.mp4?filename=%5BNimegami%5D%20Sousou%20no%20Frieren%20Ep%2001%20%281080p%29.mp4';
+          final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_fallback_' + DateTime.now().millisecondsSinceEpoch.toString();
+          _resolvedVideoUrl = fallbackUrl;
+          _resolvedQuality = '1080p (Sub Indo)';
+          _availableQualities = ['1080p (Sub Indo)', '720p HD', '480p'];
+          _iframeViewId = newViewId;
+          _iframeRegistered = false;
         });
-        debugPrint('[WatchScreen] auto-stream error: $e');
+        debugPrint('[WatchScreen] auto-stream error — using Sub Indo HD fallback stream: $e');
       });
     }
   }
@@ -611,25 +617,31 @@ class _WatchScreenState extends State<WatchScreen>
       children: [
         _persistentBackBar(context),
         _videoPlayer(context),
-        _controlsBar(),
-        _rewardDropPanel(),
-        // Tab bar — sama persis dengan wide layout, biar mobile juga bisa
-        // switch antara Episode / Komunitas / Adu Level / Kosmetik
-        _panelTabBar(),
-        // Konten tiap tab — conditional sama kayak di wideLayout
         Expanded(
-          child: _panelTab == 0
-              ? Column(children: [
-                  _episodeHeader(),
-                  Expanded(child: _episodeList()),
-                ])
-              : _panelTab == 1
-                  ? _communityPanel()
-                  : _panelTab == 2
-                      ? _aduLevelPanel()
-                      : _kosmetikPanel(),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _controlsBar(),
+                _rewardDropPanel(),
+                _panelTabBar(),
+                _panelTab == 0
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _episodeHeader(),
+                          _episodeListScrollable(),
+                        ],
+                      )
+                    : _panelTab == 1
+                        ? SizedBox(height: 400, child: _communityPanel())
+                        : SizedBox(height: 500, child: _kosmetikPanel()),
+              ],
+            ),
+          ),
         ),
-        _infoBarCompact(),
       ],
     );
   }
@@ -643,12 +655,10 @@ class _WatchScreenState extends State<WatchScreen>
           flex: 3,
           child: Column(
             children: [
-              // ── Back bar — selalu visible, tidak ikut fade controls ──────────
               _persistentBackBar(context),
               _videoPlayer(context),
               _controlsBar(),
               _rewardDropPanel(),
-              _infoSectionWide(context),
             ],
           ),
         ),
@@ -666,9 +676,7 @@ class _WatchScreenState extends State<WatchScreen>
                       ])
                     : _panelTab == 1
                         ? _communityPanel()
-                        : _panelTab == 2
-                            ? _aduLevelPanel()
-                            : _kosmetikPanel(),
+                        : _kosmetikPanel(),
               ),
             ],
           ),
@@ -682,84 +690,80 @@ class _WatchScreenState extends State<WatchScreen>
     final epTitle = widget.anime.episodes.isEmpty
         ? widget.anime.title
         : 'EP ${_currentEpisode.number} · ${_currentEpisode.title}';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 16, 8),
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        border: Border(bottom: BorderSide(color: _kWhite06)),
-      ),
-      child: Row(
-        children: [
-          // ── Glassmorphic back button ──────────────────────────────
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: _kSurface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _kWhite06),
-                boxShadow: [BoxShadow(color: _kPurple.withValues(alpha: 0.10), blurRadius: 10)],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+      child: LiquidGlassPill(
+        borderRadius: 16,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: _kSurface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _kWhite06),
+                  boxShadow: [BoxShadow(color: _kPurple.withValues(alpha: 0.10), blurRadius: 10)],
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded, color: _kInk, size: 14),
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: _kInk, size: 15),
             ),
-          ),
-          const SizedBox(width: 12),
-          // ── Anime title + episode badge ───────────────────────────
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.anime.title,
-                  style: const TextStyle(color: _kInk, fontSize: 13, fontWeight: FontWeight.w800, height: 1.2),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    // Live dot
-                    Container(
-                      width: 6, height: 6,
-                      decoration: BoxDecoration(color: _kPink, shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: _kPink.withValues(alpha: 0.5), blurRadius: 4)]),
-                    ),
-                    const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(epTitle,
-                        style: TextStyle(color: _kWhite60, fontSize: 11, fontWeight: FontWeight.w600),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.anime.title,
+                    style: const TextStyle(color: _kInk, fontSize: 13, fontWeight: FontWeight.w800, height: 1.2),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6, height: 6,
+                        decoration: BoxDecoration(color: _kPink, shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: _kPink.withValues(alpha: 0.5), blurRadius: 4)]),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(epTitle,
+                          style: TextStyle(color: _kWhite60, fontSize: 11, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // ── Rating pill ───────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.star_rounded, color: Colors.amber, size: 11),
+                  const SizedBox(width: 3),
+                  Text('${widget.anime.rating}',
+                    style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.w900)),
+                ],
+              ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.star_rounded, color: Colors.amber, size: 11),
-                const SizedBox(width: 3),
-                Text('${widget.anime.rating}',
-                  style: const TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.w900)),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -986,88 +990,79 @@ class _WatchScreenState extends State<WatchScreen>
 
   Widget _controlsBar() {
     final watchedPct = (_seekValue * 100).round();
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_kSurface, AppTheme.background],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kWhite06),
-        boxShadow: [
-          BoxShadow(color: _kPurple.withValues(alpha: 0.10), blurRadius: 20, offset: const Offset(0, 8)),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Progress strip ─────────────────────────────────────
-          Row(
-            children: [
-              Text(_formatTime(_seekValue),
-                style: TextStyle(color: _kWhite60, fontSize: 10, fontWeight: FontWeight.w700)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _PremiumSeekBar(
-                  value: _seekValue,
-                  onChanged: (v) {
-                    setState(() => _seekValue = v);
-                    _updatePlaybackUiFlags();
-                    _syncContinueWatching();
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text('22:10',
-                style: TextStyle(color: _kWhite40, fontSize: 10)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // ── Nav + episode info ──────────────────────────────────
-          Row(
-            children: [
-              _NavButton(icon: Icons.skip_previous_rounded, label: 'Sebelum',
-                enabled: _hasPrev, onTap: () => _goToEpisode(_currentIndex - 1)),
-              const SizedBox(width: 6),
-              _NavButton(icon: Icons.skip_next_rounded, label: 'Berikut',
-                enabled: _hasNext, onTap: () => _goToEpisode(_currentIndex + 1)),
-              const Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_currentEpisode.title,
-                    style: const TextStyle(color: _kInk, fontWeight: FontWeight.w800, fontSize: 12),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_currentEpisode.duration,
-                        style: TextStyle(color: _kWhite40, fontSize: 10)),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _kPink.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: _kPinkBorder),
-                        ),
-                        child: Text('$watchedPct%',
-                          style: TextStyle(color: _kPink, fontSize: 9, fontWeight: FontWeight.w900)),
-                      ),
-                    ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+      child: LiquidGlassPill(
+        borderRadius: 16,
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Progress strip ─────────────────────────────────────
+            Row(
+              children: [
+                Text(_formatTime(_seekValue),
+                  style: TextStyle(color: _kWhite60, fontSize: 10, fontWeight: FontWeight.w700)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _PremiumSeekBar(
+                    value: _seekValue,
+                    onChanged: (v) {
+                      setState(() => _seekValue = v);
+                      _updatePlaybackUiFlags();
+                      _syncContinueWatching();
+                    },
                   ),
-                ],
-              ),
-            ],
-          ), // Closes Row
-        ], // Closes Column children
-      ), // Closes Column
-    ); // Closes Container
+                ),
+                const SizedBox(width: 8),
+                Text('22:10',
+                  style: TextStyle(color: _kWhite40, fontSize: 10)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // ── Nav + episode info ──────────────────────────────────
+            Row(
+              children: [
+                _NavButton(icon: Icons.skip_previous_rounded, label: 'Sebelum',
+                  enabled: _hasPrev, onTap: () => _goToEpisode(_currentIndex - 1)),
+                const SizedBox(width: 6),
+                _NavButton(icon: Icons.skip_next_rounded, label: 'Berikut',
+                  enabled: _hasNext, onTap: () => _goToEpisode(_currentIndex + 1)),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_currentEpisode.title,
+                      style: const TextStyle(color: _kInk, fontWeight: FontWeight.w800, fontSize: 12),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_currentEpisode.duration,
+                          style: TextStyle(color: _kWhite40, fontSize: 10)),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _kPink.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: _kPinkBorder),
+                          ),
+                          child: Text('$watchedPct%',
+                            style: TextStyle(color: _kPink, fontSize: 9, fontWeight: FontWeight.w900)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _rewardDropPanel() {
@@ -1273,6 +1268,33 @@ class _WatchScreenState extends State<WatchScreen>
     );
   }
 
+  Widget _episodeListScrollable() {
+    return ValueListenableBuilder<Map<String, Set<int>>>(
+      valueListenable: MockDataService.watchedEpisodesNotifier,
+      builder: (context, watchedMap, _) {
+        final watchedSet = watchedMap[widget.anime.id] ?? const <int>{};
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
+          itemCount: widget.anime.episodes.length,
+          itemBuilder: (context, index) {
+            final ep = widget.anime.episodes[index];
+            final isSelected = index == _currentIndex;
+            return _EpisodeTile(
+              episode: ep,
+              isSelected: isSelected,
+              isWatched: watchedSet.contains(ep.number),
+              animeCoverUrl: widget.anime.imageUrl,
+              currentProgress: isSelected ? _seekValue : 0.0,
+              onTap: () => _goToEpisode(index),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _episodeListView(Set<int> watchedSet) {
     return Container(
       key: const ValueKey('list'),
@@ -1332,237 +1354,41 @@ class _WatchScreenState extends State<WatchScreen>
     final epComments = widget.anime.episodes.isEmpty
         ? 0
         : (_comments[_currentEpisode.number]?.length ?? 0);
-    return Container(
-      decoration: BoxDecoration(
-        color: _kSurface,
-        border: Border(bottom: BorderSide(color: _kWhite06)),
-      ),
-      child: Row(
-        children: [
-          _PanelTab(
-            label: 'Episode',
-            icon: Icons.playlist_play_rounded,
-            isActive: _panelTab == 0,
-            onTap: () => setState(() => _panelTab = 0),
-          ),
-          _PanelTab(
-            label: 'Komunitas',
-            icon: Icons.chat_bubble_outline_rounded,
-            isActive: _panelTab == 1,
-            badge: epComments > 0 ? '$epComments' : null,
-            onTap: () => setState(() => _panelTab = 1),
-          ),
-          _PanelTab(
-            label: 'Adu Level',
-            icon: Icons.leaderboard_rounded,
-            isActive: _panelTab == 2,
-            badge: '🏆',
-            onTap: () => setState(() => _panelTab = 2),
-          ),
-          _PanelTab(
-            label: 'Kosmetik',
-            icon: Icons.auto_awesome_rounded,
-            isActive: _panelTab == 3,
-            onTap: () => setState(() => _panelTab = 3),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Adu Level panel ──────────────────────────────────────────────────────
-  Widget _aduLevelPanel() {
-    // Leaderboard — sorted by level descending. "Kamu" is pinned as the
-    // current user at Lv.12 so they can see their own position.
-    const myUser = _MockUser('Kamu', 12, 'Otaku Sejati', '🎮', '0xFF7B9E87');
-    final allUsers = [
-      ..._mockUsers,
-      const _MockUser('NightOwl_88', 38, 'Elite Watcher', '⚔️', '0xFFD4AF37'),
-      const _MockUser('SakuraDreamer', 29, 'Otaku Sejati', '🎴', '0xFFC17E74'),
-      const _MockUser('AnimeGod', 46, 'Cosmic Legend', '🌸', '0xFF9D4EDD'),
-      myUser,
-    ]..sort((a, b) => b.level.compareTo(a.level));
-
-    final myRank = allUsers.indexWhere((u) => u.name == 'Kamu') + 1;
-    final tier = _RankTier.forLevel(myUser.level);
-
-    return Column(
-      children: [
-        // Your rank card
-        Container(
-          margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [tier.color.withValues(alpha: 0.18), _kBg],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: LiquidGlassPill(
+        borderRadius: 14,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: _PanelTab(
+                label: 'Episode',
+                icon: Icons.playlist_play_rounded,
+                isActive: _panelTab == 0,
+                onTap: () => setState(() => _panelTab = 0),
+              ),
             ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: tier.color.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 46, height: 46,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: tier.color.withValues(alpha: 0.2),
-                  border: Border.all(color: tier.color, width: 2),
-                  boxShadow: [BoxShadow(color: tier.color.withValues(alpha: 0.35), blurRadius: 12)],
-                ),
-                child: Center(child: Text(myUser.frameEmoji, style: const TextStyle(fontSize: 22))),
+            Expanded(
+              child: _PanelTab(
+                label: 'Komunitas',
+                icon: Icons.chat_bubble_outline_rounded,
+                isActive: _panelTab == 1,
+                badge: epComments > 0 ? '$epComments' : null,
+                onTap: () => setState(() => _panelTab = 1),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Text('Kamu', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w800)),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: tier.color.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Text('Lv.${myUser.level}', style: TextStyle(color: tier.color, fontSize: 10, fontWeight: FontWeight.w900)),
-                      ),
-                    ]),
-                    const SizedBox(height: 3),
-                    Row(children: [
-                      Text(tier.emoji, style: const TextStyle(fontSize: 12)),
-                      const SizedBox(width: 4),
-                      Text(tier.name, style: TextStyle(color: tier.color, fontSize: 11, fontWeight: FontWeight.w600)),
-                    ]),
-                  ],
-                ),
+            ),
+            Expanded(
+              child: _PanelTab(
+                label: 'Kosmetik',
+                icon: Icons.auto_awesome_rounded,
+                isActive: _panelTab == 2,
+                onTap: () => setState(() => _panelTab = 2),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Peringkat', style: TextStyle(color: _kWhite40, fontSize: 10)),
-                  Text('#$myRank', style: TextStyle(
-                    color: myRank <= 3 ? const Color(0xFFD4AF37) : AppTheme.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  )),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-
-        // Section header
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-          child: Row(
-            children: [
-              Container(width: 3, height: 14, decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFFD4AF37), Color(0xFF9D4EDD)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-                borderRadius: BorderRadius.circular(2),
-              )),
-              const SizedBox(width: 8),
-              Text('Penonton Episode Ini', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              Text('${allUsers.length} penonton', style: TextStyle(color: _kWhite40, fontSize: 11)),
-            ],
-          ),
-        ),
-
-        // Leaderboard list
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-            itemCount: allUsers.length,
-            itemBuilder: (context, i) {
-              final u = allUsers[i];
-              final rank = i + 1;
-              final isMe = u.name == 'Kamu';
-              final t = _RankTier.forLevel(u.level);
-              final isTop3 = rank <= 3;
-              final medalEmoji = rank == 1 ? '🥇' : rank == 2 ? '🥈' : rank == 3 ? '🥉' : null;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                decoration: BoxDecoration(
-                  color: isMe
-                      ? t.color.withValues(alpha: 0.1)
-                      : isTop3
-                          ? const Color(0xFFD4AF37).withValues(alpha: 0.05)
-                          : _kSurface.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isMe
-                        ? t.color.withValues(alpha: 0.4)
-                        : isTop3
-                            ? const Color(0xFFD4AF37).withValues(alpha: 0.2)
-                            : _kWhite06,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Rank number / medal
-                    SizedBox(
-                      width: 28,
-                      child: Text(
-                        medalEmoji ?? '#$rank',
-                        style: TextStyle(
-                          fontSize: medalEmoji != null ? 16 : 11,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFFD4AF37).withValues(alpha: 0.8),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Avatar
-                    Container(
-                      width: 32, height: 32,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: t.color.withValues(alpha: 0.15),
-                        border: Border.all(color: t.color.withOpacity(isMe ? 0.7 : 0.35), width: isMe ? 2 : 1),
-                      ),
-                      child: Center(child: Text(u.frameEmoji, style: const TextStyle(fontSize: 15))),
-                    ),
-                    const SizedBox(width: 10),
-                    // Name + rank
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isMe ? 'Kamu' : u.name,
-                            style: TextStyle(
-                              color: isMe ? t.color : AppTheme.textPrimary,
-                              fontSize: 12,
-                              fontWeight: isMe ? FontWeight.w800 : FontWeight.w600,
-                            ),
-                          ),
-                          Text('${t.emoji} ${t.name}', style: TextStyle(color: t.color.withValues(alpha: 0.7), fontSize: 10)),
-                        ],
-                      ),
-                    ),
-                    // Level pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: t.color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: t.color.withValues(alpha: 0.3)),
-                      ),
-                      child: Text('Lv.${u.level}', style: TextStyle(color: t.color, fontSize: 11, fontWeight: FontWeight.w900)),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -2272,112 +2098,6 @@ class _WatchScreenState extends State<WatchScreen>
     );
   }
 
-  // ─── Info section (wide layout) ──────────────────────────────────────────
-
-  Widget _infoSectionWide(BuildContext context) {
-    return Expanded(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.anime.title,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 19,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '${widget.anime.rating}',
-                  style: const TextStyle(
-                    color: Colors.amber,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _InfoPill(widget.anime.genre),
-                const SizedBox(width: 6),
-                _InfoPill('${widget.anime.episodes.length} Episodes'),
-                const SizedBox(width: 6),
-                const _InfoPill('HD'),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Text(
-              widget.anime.description,
-              style: TextStyle(
-                color: _kWhite60,
-                fontSize: 13,
-                height: 1.65,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Compact info bar (narrow layout) ────────────────────────────────────
-
-  Widget _infoBarCompact() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
-      decoration: BoxDecoration(
-        color: _kSurface,
-        border: Border(top: BorderSide(color: _kWhite06)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.anime.title,
-                  style: const TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
-                    const Icon(Icons.star_rounded,
-                        color: Colors.amber, size: 13),
-                    const SizedBox(width: 3),
-                    Text(
-                      '${widget.anime.rating}',
-                      style: const TextStyle(
-                        color: Colors.amber,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _InfoPill(widget.anime.genre, small: true),
-                    const SizedBox(width: 5),
-                    _InfoPill('${widget.anime.episodes.length} Eps',
-                        small: true),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _topBarV2(BuildContext context) {
     return Positioned(
       top: 14,
@@ -2561,6 +2281,11 @@ class _WatchScreenState extends State<WatchScreen>
                 _PlayerIconBtn(icon: Icons.speed_rounded, onTap: () {}),
                 const SizedBox(width: 4),
                 _PlayerIconBtn(
+                  icon: Icons.hd_rounded,
+                  onTap: _showQualitySelector,
+                ),
+                const SizedBox(width: 4),
+                _PlayerIconBtn(
                   icon: _isFullscreen
                       ? Icons.fullscreen_exit_rounded
                       : Icons.fullscreen_rounded,
@@ -2571,6 +2296,89 @@ class _WatchScreenState extends State<WatchScreen>
           ],
         ),
       ),
+    );
+  }
+
+  void _showQualitySelector() {
+    final qualities = _availableQualities.isNotEmpty
+        ? _availableQualities
+        : ['1080p (FHD)', '720p (HD)', '480p (SD)', 'Auto'];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceElevated,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: _kPinkBorder),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.hd_rounded, color: _kPink, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Pilih Kualitas Video',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.white12),
+              ...qualities.map((q) {
+                final isSelected = q == _resolvedQuality;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    color: isSelected ? _kPink : Colors.white38,
+                  ),
+                  title: Text(
+                    q,
+                    style: TextStyle(
+                      color: isSelected ? _kPink : Colors.white,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  onTap: () {
+                    final link = resolveMyEpisodeLink(widget.anime.title, _currentEpisode.number);
+                    setState(() {
+                      _resolvedQuality = q;
+                      if (link != null && link.qualities.containsKey(q)) {
+                        _resolvedVideoUrl = link.qualities[q];
+                      }
+                      _iframeRegistered = false;
+                      _iframeViewId = 'video_iframe_${widget.anime.id}_ep${_currentEpisode.number}_${q}_${DateTime.now().millisecondsSinceEpoch}';
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Kualitas diubah ke $q'),
+                        duration: const Duration(seconds: 2),
+                        backgroundColor: _kPink,
+                      ),
+                    );
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -3257,14 +3065,23 @@ class _EpisodeTile extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'EP ${episode.number}',
-                        style: TextStyle(
-                          color: isSelected ? _kPink : _kWhite40,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'EP ${episode.number}',
+                            style: TextStyle(
+                              color: isSelected ? _kPink : _kWhite40,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 6),
+                            const _EqualizerWave(),
+                          ],
+                        ],
                       ),
                       Row(
                         children: [
@@ -3534,36 +3351,7 @@ class _PlayingIndicatorState extends State<_PlayingIndicator>
   }
 }
 
-// ─── Info pill ────────────────────────────────────────────────────────────────
 
-class _InfoPill extends StatelessWidget {
-  final String label;
-  final bool small;
-
-  const _InfoPill(this.label, {this.small = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: small ? 6 : 8,
-        vertical: small ? 2 : 3,
-      ),
-      decoration: BoxDecoration(
-        color: _kWhite06,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: _kWhite10, width: 0.5),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: _kWhite60,
-          fontSize: small ? 11 : 12,
-        ),
-      ),
-    );
-  }
-}
 
 // ─── Data models untuk komentar ───────────────────────────────────────────
 
@@ -3772,6 +3560,72 @@ class _CommentTile extends StatelessWidget {
               fontSize: 12,
               height: 1.4,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Equalizer Wave Animation ───────────────────────────────────────────────
+class _EqualizerWave extends StatefulWidget {
+  const _EqualizerWave();
+
+  @override
+  State<_EqualizerWave> createState() => _EqualizerWaveState();
+}
+
+class _EqualizerWaveState extends State<_EqualizerWave>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, _) {
+        final val = _anim.value;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _bar(6 + (val * 8)),
+            const SizedBox(width: 2),
+            _bar(12 - (val * 6)),
+            const SizedBox(width: 2),
+            _bar(4 + (val * 10)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _bar(double h) {
+    return Container(
+      width: 2.5,
+      height: h.clamp(3.0, 14.0),
+      decoration: BoxDecoration(
+        color: _kPink,
+        borderRadius: BorderRadius.circular(2),
+        boxShadow: [
+          BoxShadow(
+            color: _kPink.withValues(alpha: 0.6),
+            blurRadius: 4,
           ),
         ],
       ),

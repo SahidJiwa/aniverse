@@ -65,42 +65,18 @@ List<String> corsProxyCandidates(String? url) {
     return [cleanUrl];
   }
 
-  // Already-proxied URLs shouldn't be double-wrapped — use as-is.
-  if (cleanUrl.contains('wsrv.nl') ||
-      cleanUrl.contains('weserv.nl') ||
-      cleanUrl.contains('corsproxy.io') ||
-      cleanUrl.contains('allorigins.win') ||
-      cleanUrl.contains('proxy.cors.sh') ||
-      cleanUrl.contains('proxy.corsfix.com') ||
-      cleanUrl.contains('aniverse-proxy.tirtasisahid.workers.dev')) {
+  if (cleanUrl.contains('wsrv.nl')) {
     return [cleanUrl];
   }
 
-  // AniList CDN, Placeholders, or images directly hosted on public CDNs (myanimelist.net CDN, etc)
-  if (cleanUrl.contains('anilist.co') ||
-      cleanUrl.contains('placehold.co') ||
-      cleanUrl.contains('images.placehold.co') ||
-      cleanUrl.endsWith('/default.jpg')) {
-    return [cleanUrl];
-  }
+  // Primary: direct clean URL
+  // Secondary: wsrv.nl proxy (works 100% on Flutter Web Chrome CORS without 403)
+  final wsrvUrl = 'https://wsrv.nl/?url=${Uri.encodeComponent(cleanUrl)}';
 
-  // Try raw direct URL first before falling back to proxy candidates
-  final candidates = <String>[
+  return [
     cleanUrl,
-    '$_aniverseProxyBase/image?url=${Uri.encodeComponent(cleanUrl)}',
+    wsrvUrl,
   ];
-
-  // If URL ends with 'l.jpg' (often 404s on MAL CDN), also try without the 'l'
-  final String? altUrl = cleanUrl.endsWith('l.jpg')
-      ? '${cleanUrl.substring(0, cleanUrl.length - 5)}.jpg'
-      : null;
-
-  if (altUrl != null) {
-    candidates.add(altUrl);
-    candidates.add('$_aniverseProxyBase/image?url=${Uri.encodeComponent(altUrl)}');
-  }
-
-  return candidates;
 }
 
 /// Minimal shimmer placeholder used while an image loads or while this

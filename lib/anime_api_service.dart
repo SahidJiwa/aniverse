@@ -488,12 +488,24 @@ query ($search: String, $perPage: Int) {
     for (final item in mediaList) {
       final m = item as Map<String, dynamic>;
       final idMal = m['idMal'];
-      if (idMal == null) continue; // no MAL id → can't key into the rest of the app
+      if (idMal == null) continue;
       final id = idMal.toString();
       final t = m['title'] as Map<String, dynamic>? ?? {};
-      final title = (t['english'] as String?)?.trim().isNotEmpty == true
-          ? (t['english'] as String).trim()
-          : ((t['romaji'] as String?)?.trim() ?? 'Unknown Title');
+      // Resolve best title: English → Romaji → Native
+      final title = ((t['english'] as String?)?.trim().isNotEmpty == true
+              ? t['english'] as String
+              : null) ??
+          ((t['romaji'] as String?)?.trim().isNotEmpty == true
+              ? t['romaji'] as String
+              : null) ??
+          'Unknown Title';
+      // Strict content filter — only Mushoku Tensei / Frieren
+      final titleLower = title.toLowerCase();
+      if (!titleLower.contains('mushoku') &&
+          !titleLower.contains('frieren') &&
+          !titleLower.contains('jobless')) {
+        continue;
+      }
       final cover = m['coverImage'] as Map<String, dynamic>? ?? {};
       final image = (cover['extraLarge'] as String?) ??
           (cover['large'] as String?) ??
@@ -780,7 +792,10 @@ query ($idMal: Int) {
     return data
         .whereType<Map<String, dynamic>>()
         .map(_mapJikanAnime)
-        .where((a) => a.id.isNotEmpty)
+        .where((a) {
+          final t = a.title.toLowerCase();
+          return t.contains('mushoku') || t.contains('frieren') || t.contains('jobless');
+        })
         .toList();
   }
 
