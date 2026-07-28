@@ -796,24 +796,45 @@ body {
 .mnav-icon { font-size: 20px; }
 
 /* ════════════════════════════════════════════════════════════════
-   📱 MOBILE-FIRST COMPLETE REWRITE — iPhone XR & Android Optimized
-   Semua fitur 100% bisa digunakan di layar HP
+   📱 UNIVERSAL FLUID AUTO-SCALE ENGINE — iPhone XR, SE, Android & Tablets
+   Otomatis menyesuaikan skala UI di HP APAPUN tanpa perlu edit manual
    ════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 868px) {
+  /* Dynamic Viewport Fluid Container */
+  :root {
+    --fluid-px: clamp(10px, 3.5vw, 18px);
+    --fluid-font-sm: clamp(10px, 2.8vw, 12px);
+    --fluid-font-md: clamp(12px, 3.5vw, 14px);
+    --fluid-font-lg: clamp(16px, 4.5vw, 22px);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+  }
+
+  html, body {
+    width: 100% !important;
+    overflow-x: hidden !important;
+    -webkit-text-size-adjust: 100%;
+  }
+
   /* Fix App Layout for iPhone XR & Mobile Screens */
   .app-container {
-    flex-direction: column;
-    padding-bottom: 80px;
+    flex-direction: column !important;
+    padding-bottom: max(76px, calc(60px + env(safe-area-inset-bottom))) !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
   }
 
   /* Sidebar header at top */
   .sidebar {
-    width: 100%;
-    height: auto;
-    border-right: none;
+    width: 100% !important;
+    height: auto !important;
+    border-right: none !important;
     border-bottom: 1px solid var(--border-color);
-    padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px !important;
+    padding: max(12px, env(safe-area-inset-top)) var(--fluid-px) 12px var(--fluid-px) !important;
     background: rgba(10, 12, 22, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -824,14 +845,18 @@ body {
   .sidebar-version, .sidebar-footer, .nav-menu { display: none !important; }
   .mobile-nav-bar { display: flex !important; }
 
-  .main-content { padding: 12px 14px; }
+  .main-content {
+    padding: 12px var(--fluid-px) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
 
   /* ── Top Bar ── */
-  .top-bar { flex-direction: column; align-items: stretch; gap: 10px; }
-  .search-box { width: 100%; }
-  .search-box input { font-size: 13px; padding: 10px 14px 10px 38px; width: 100%; }
-  .header-actions { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; width: 100% !important; }
-  .header-actions button { padding: 9px 10px !important; font-size: 11px !important; justify-content: center !important; min-height: 40px !important; width: 100% !important; }
+  .top-bar { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; width: 100% !important; }
+  .search-box { width: 100% !important; }
+  .search-box input { font-size: var(--fluid-font-md) !important; padding: 10px 14px 10px 38px !important; width: 100% !important; }
+  .header-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; width: 100% !important; }
+  .header-actions button { padding: 9px 6px !important; font-size: var(--fluid-font-sm) !important; justify-content: center !important; min-height: 42px !important; width: 100% !important; }
   .user-profile { display: none !important; }
 
   /* ── Horizontal Scrollable Stats Rail ── */
@@ -846,9 +871,9 @@ body {
     width: 100% !important;
   }
   .stats-strip::-webkit-scrollbar, .stats-banner::-webkit-scrollbar { display: none; }
-  .stat-card { min-width: 110px !important; max-width: 110px !important; flex: 0 0 auto !important; padding: 10px 12px !important; scroll-snap-align: start; border-radius: 14px !important; }
-  .stat-num { font-size: 20px !important; }
-  .stat-label { font-size: 10px !important; }
+  .stat-card { min-width: clamp(100px, 30vw, 130px) !important; flex: 0 0 auto !important; padding: 10px 12px !important; scroll-snap-align: start; border-radius: 14px !important; }
+  .stat-num { font-size: var(--fluid-font-lg) !important; }
+  .stat-label { font-size: var(--fluid-font-sm) !important; }
   .stat-icon { font-size: 16px !important; }
 
   /* ── Filter Toolbar ── */
