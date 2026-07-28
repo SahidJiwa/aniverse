@@ -149,10 +149,8 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
       return widget.fallback;
     }
     if (kIsWeb) {
-      // YouTube embed iframe is blocked by Chrome/browser CORS on localhost
-      // ("This video is unavailable"). We display the beautiful hero poster fallback
-      // on Web to guarantee zero visual errors.
-      return widget.fallback;
+      if (_viewId == null) return widget.fallback;
+      return HtmlElementView(viewType: _viewId!);
     }
     if (_nativeController == null) return widget.fallback;
     return ClipRect(

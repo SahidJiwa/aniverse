@@ -571,20 +571,7 @@ class _NetworkImageWithFallback extends StatelessWidget {
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        // Fallback to proxy if direct load fails due to CORS
-        if (!cleanUrl.startsWith('https://corsproxy.io/?')) {
-          final proxyUrl = 'https://corsproxy.io/?${Uri.encodeComponent(cleanUrl)}';
-          return Image.network(
-            proxyUrl,
-            width: width,
-            height: height,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _Placeholder(width: width, height: height),
-          );
-        }
-        return _Placeholder(width: width, height: height);
-      },
+      errorBuilder: (_, __, ___) => _Placeholder(width: width, height: height),
       loadingBuilder: (_, child, progress) {
         if (progress == null) return child;
         return SizedBox(

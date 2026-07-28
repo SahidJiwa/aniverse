@@ -344,15 +344,17 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                         return Stack(
                           fit: StackFit.expand,
                           children: [
-                            buildPosterLayer(),
-                            if (!kIsWeb)
-                              FadeTransition(
-                                opacity: _trailerOpacity,
-                                child: TrailerPlayer(
-                                  trailerUrl: trailerUrl,
-                                  fallback: buildPosterLayer(),
-                                ),
+                            FadeTransition(
+                              opacity: ReverseAnimation(_trailerOpacity),
+                              child: buildPosterLayer(),
+                            ),
+                            FadeTransition(
+                              opacity: _trailerOpacity,
+                              child: TrailerPlayer(
+                                trailerUrl: trailerUrl,
+                                fallback: buildPosterLayer(),
                               ),
+                            ),
                             // ── Interactive Trailer Button (Web & Mobile) ──────────
                             Positioned(
                               right: 16,

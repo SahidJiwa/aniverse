@@ -526,10 +526,10 @@ class MockDataService {
         nextEpisodeAt: null,
         trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
         voiceActors: const [
-          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n119330-yXw7s5021S2J.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176754-t8bY1LSmSj0Z.png', language: 'Japanese'),
-          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n129213-9U3c8EmsM68n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176755-fQn5gPshHjXz.png', language: 'Japanese'),
-          VoiceActorModel(malId: 2, name: 'Kana Ichinose', characterName: 'Fern', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n128383-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176756-xQn5gPshHjXz.png', language: 'Japanese'),
-          VoiceActorModel(malId: 3, name: 'Hiroki Yasumoto', characterName: 'Stark', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n95610-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176757-xQn5gPshHjXz.png', language: 'Japanese'),
+          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Atsumi_Tanezaki_2023.jpg/330px-Atsumi_Tanezaki_2023.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
+          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Chiaki_Kobayashi.jpg/330px-Chiaki_Kobayashi.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
+          VoiceActorModel(malId: 2, name: 'Kana Ichinose', characterName: 'Fern', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Kana_Ichinose.jpg/330px-Kana_Ichinose.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
+          VoiceActorModel(malId: 3, name: 'Hiroki Yasumoto', characterName: 'Stark', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Hiroki_Yasumoto.jpg/330px-Hiroki_Yasumoto.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
         ],
       ),
       AnimeModel(
@@ -546,10 +546,10 @@ class MockDataService {
         nextEpisodeAt: nextAiring(5, 23),
         trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
         voiceActors: const [
-          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n119330-yXw7s5021S2J.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176754-t8bY1LSmSj0Z.png', language: 'Japanese'),
-          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n129213-9U3c8EmsM68n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176755-fQn5gPshHjXz.png', language: 'Japanese'),
-          VoiceActorModel(malId: 2, name: 'Kana Ichinose', characterName: 'Fern', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n128383-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176756-xQn5gPshHjXz.png', language: 'Japanese'),
-          VoiceActorModel(malId: 3, name: 'Hiroki Yasumoto', characterName: 'Stark', imageUrl: 'https://s4.anilist.co/file/anilistcdn/staff/large/n95610-aI6sP0JvT18n.png', characterImageUrl: 'https://s4.anilist.co/file/anilistcdn/character/large/b176757-xQn5gPshHjXz.png', language: 'Japanese'),
+          VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Atsumi_Tanezaki_2023.jpg/330px-Atsumi_Tanezaki_2023.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
+          VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Chiaki_Kobayashi.jpg/330px-Chiaki_Kobayashi.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
+          VoiceActorModel(malId: 2, name: 'Kana Ichinose', characterName: 'Fern', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Kana_Ichinose.jpg/330px-Kana_Ichinose.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
+          VoiceActorModel(malId: 3, name: 'Hiroki Yasumoto', characterName: 'Stark', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Hiroki_Yasumoto.jpg/330px-Hiroki_Yasumoto.jpg', characterImageUrl: 'https://images.justwatch.com/poster/308828987/s392/season-1', language: 'Japanese'),
         ],
       ),
       AnimeModel(
