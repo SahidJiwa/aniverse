@@ -1,0 +1,15 @@
+DevHandler: Failed to create WebSocket debug connection: DartDevelopmentServiceException: WebSocketChannelException: WebSocketException: Connection to 'http://127.0.0.1:63812/EuQDTjxw09Q=/ws#' was not upgraded to websocket
+
+Failed to create WebSocket debug connection: DartDevelopmentServiceException: WebSocketChannelException: WebSocketException: Connection to 'http://127.0.0.1:63812/EuQDTjxw09Q=/ws#' was not upgraded to websocket
+
+DevHandler: Failed to create WebSocket debug connection: DartDevelopmentServiceException: WebSocketChannelException: WebSocketException: Connection to 'http://127.0.0.1:63906/PeiKV4t7Cek=/ws#' was not upgraded to websocket
+
+Failed to create WebSocket debug connection: DartDevelopmentServiceException: WebSocketChannelException: WebSocketException: Connection to 'http://127.0.0.1:63906/PeiKV4t7Cek=/ws#' was not upgraded to websocket
+
+
+Oops; flutter has exited unexpectedly: "DartDevelopmentServiceException: WebSocketChannelException: WebSocketException: Connection to 'http://127.0.0.1:63908/OdD3fZn59F4=/ws#' was not upgraded to websocket".
+DevHandler: Failed to create WebSocket debug connection: DartDevelopmentServiceException: WebSocketChannelException: WebSocketException: Connection to 'http://127.0.0.1:63930/8FWAP7T4HY0=/ws#' was not upgraded to websocket
+
+Failed to create WebSocket debug connection: DartDevelopmentServiceException: WebSocketChannelException: WebSocketException: Connection to 'http://127.0.0.1:63930/8FWAP7T4HY0=/ws#' was not upgraded to websocket
+
+A crash report has been written to C:\aniverse\flutter_01.log
