@@ -10,6 +10,7 @@ import 'trailer_player.dart';
 import 'voice_actor_model.dart';
 import 'voice_actors_section.dart';
 import 'widgets/liquid_glass.dart';
+import 'proxied_network_image.dart';
 import 'watch_screen.dart';
 
 class AnimeDetailScreen extends StatefulWidget {
