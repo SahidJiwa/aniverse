@@ -218,7 +218,13 @@ function loadCatalogData() {
   }
 
   try {
-    catalogData = JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      catalogData = parsed;
+    } else {
+      catalogData = [...defaultCatalog];
+      saveCatalogData(false);
+    }
   } catch (err) {
     catalogData = [...defaultCatalog];
     saveCatalogData(false);
