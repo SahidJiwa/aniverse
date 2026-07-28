@@ -27,11 +27,12 @@ const Map<String, String> trailerLinks = {
   //
   // 'exact anime title here': 'https://youtube.com/watch?v=...',
   // ─────────────────────────────────────────────────────────────────────────
-  'mushoku tensei: isekai ittara honki dasu': 'https://youtu.be/1TiBoHQUj3I',
-  'mushoku tensei: jobless reincarnation': 'https://youtu.be/1TiBoHQUj3I',
-  'sousou no frieren': 'https://www.youtube.com/watch?v=Iwr1aLEDpe4',
-  'sousou no frieren season 2':
-      'https://youtu.be/EOMVXqH9DSg?si=pPKCE0u5nFMcPuoA',
+const Map<String, String> trailerLinks = {
+  'mushoku tensei: isekai ittara honki dasu': 'https://www.youtube.com/watch?v=r_sT__wzXN4',
+  'mushoku tensei: jobless reincarnation': 'https://www.youtube.com/watch?v=r_sT__wzXN4',
+  'sousou no frieren': 'https://www.youtube.com/watch?v=qgQunD218l0',
+  'sousou no frieren season 2': 'https://www.youtube.com/watch?v=qgQunD218l0',
+};
 };
 
 /// Returns the trailer URL for [animeTitle], or null if none is

@@ -503,25 +503,16 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                             );
                           }
 
-                          if (recSnapshot.hasError) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              child: Text(
-                                'Rekomendasi tidak tersedia saat offline.',
-                                style: TextStyle(
-                                  color: AppTheme.textSecondary.withOpacity(0.7),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            );
-                          }
+                          final apiRecs = recSnapshot.data ?? const [];
+                          final recs = (apiRecs.isNotEmpty)
+                              ? apiRecs
+                              : AnimeApiService.getSmartGenreRecommendations(widget.anime);
 
-                          final recs = recSnapshot.data ?? const [];
                           if (recs.isEmpty) {
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               child: Text(
-                                'No recommendations available.',
+                                'Tidak ada rekomendasi anime serupa.',
                                 style: TextStyle(color: AppTheme.textSecondary),
                               ),
                             );
@@ -553,12 +544,15 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                       FutureBuilder<List<VoiceActorModel>>(
                         future: _voiceActorsFuture,
                         builder: (context, vaSnapshot) {
+                          final apiVAs = vaSnapshot.data ?? const [];
+                          final vaList = apiVAs.isNotEmpty ? apiVAs : widget.anime.voiceActors;
+
                           return VoiceActorsSection(
-                            voiceActors: vaSnapshot.data ?? const [],
+                            voiceActors: vaList,
                             isLoading: vaSnapshot.connectionState ==
                                 ConnectionState.waiting,
-                            error: vaSnapshot.hasError
-                                ? 'Voice actor data tidak tersedia saat offline.'
+                            error: (vaSnapshot.hasError && vaList.isEmpty)
+                                ? 'Voice actor data tidak tersedia saat ini.'
                                 : null,
                           );
                         },
