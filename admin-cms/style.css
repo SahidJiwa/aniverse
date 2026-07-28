@@ -610,11 +610,23 @@ body {
 .mtab:hover { color: #fff; }
 .mtab.active { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); font-weight: 700; }
 
+/* CRITICAL: form must be flex column for iOS scroll to work */
+#anime-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .modal-tab-content {
   display: none;
   padding: 24px 28px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   flex: 1;
+  min-height: 0;
 }
 
 .modal-tab-content.active { display: block; }
@@ -689,8 +701,18 @@ body {
 .placement-card-opt:has(input:checked) { border-color: var(--accent-cyan); background: rgba(0, 242, 254, 0.08); }
 .placement-card-opt:has(input:checked) .pco-check { background: var(--accent-cyan); border-color: var(--accent-cyan); color: #000; }
 
-/* Modal Footer */
-.modal-footer { padding: 18px 28px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(0, 0, 0, 0.3); }
+/* Modal Footer — sticky at bottom, never hidden */
+.modal-footer {
+  padding: 18px 28px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(10, 12, 22, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  flex-shrink: 0; /* NEVER shrink — always visible */
+}
 .modal-footer-left, .modal-footer-right { display: flex; gap: 10px; }
 
 /* Buttons */
@@ -773,6 +795,11 @@ body {
 
 .mnav-icon { font-size: 20px; }
 
+/* ════════════════════════════════════════════════════════════════
+   📱 MOBILE-FIRST COMPLETE REWRITE — iPhone XR & Android Optimized
+   Semua fitur 100% bisa digunakan di layar HP
+   ════════════════════════════════════════════════════════════════ */
+
 @media (max-width: 868px) {
   /* Fix App Layout for iPhone XR & Mobile Screens */
   .app-container {
@@ -790,217 +817,203 @@ body {
     background: rgba(10, 12, 22, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    position: relative; /* Not sticky to avoid overlapping content */
+    position: relative;
     z-index: 10;
   }
 
-  .sidebar-version, .sidebar-footer, .nav-menu {
-    display: none !important;
-  }
+  .sidebar-version, .sidebar-footer, .nav-menu { display: none !important; }
+  .mobile-nav-bar { display: flex !important; }
 
-  .mobile-nav-bar {
-    display: flex !important;
-  }
+  .main-content { padding: 12px 14px; }
 
-  .main-content {
-    padding: 12px 14px;
-  }
+  /* ── Top Bar ── */
+  .top-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .search-box { width: 100%; }
+  .search-box input { font-size: 13px; padding: 10px 14px 10px 38px; width: 100%; }
+  .top-bar-right { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .top-bar-right button { padding: 9px 10px; font-size: 11px; justify-content: center; min-height: 40px; }
 
-  /* Compact Top Bar & Action Buttons */
-  .top-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .search-box input {
-    font-size: 13px;
-    padding: 10px 14px 10px 38px;
-  }
-
-  .top-bar-right {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .top-bar-right button {
-    padding: 8px 12px;
-    font-size: 11px;
-    justify-content: center;
-  }
-
-  /* Compact Horizontal Rail Stats (Saves 60% vertical space!) */
+  /* ── Horizontal Scrollable Stats Rail ── */
   .stats-banner {
     display: flex !important;
     overflow-x: auto;
-    gap: 10px !important;
-    padding-bottom: 8px;
+    gap: 8px !important;
+    padding-bottom: 6px;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .stats-banner::-webkit-scrollbar { display: none; }
+  .stat-card { min-width: 110px !important; max-width: 110px !important; flex: 0 0 auto; padding: 10px 12px !important; scroll-snap-align: start; border-radius: 14px !important; }
+  .stat-num { font-size: 20px !important; }
+  .stat-label { font-size: 10px !important; }
+  .stat-icon { font-size: 16px !important; }
 
-  .stat-card {
-    min-width: 120px;
-    flex: 0 0 auto;
-    padding: 10px 14px !important;
-    scroll-snap-align: start;
-  }
-
-  .stat-num {
-    font-size: 18px !important;
-  }
-
-  .stat-label {
-    font-size: 10px !important;
-  }
-
-  /* Filter Toolbar */
-  .catalog-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-
+  /* ── Filter Toolbar ── */
+  .catalog-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
   .filter-pills {
-    display: flex;
-    overflow-x: auto;
-    gap: 6px;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
+    display: flex; overflow-x: auto; gap: 6px; padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
+  .filter-pills::-webkit-scrollbar { display: none; }
+  .pill, .filter-btn { padding: 7px 14px !important; font-size: 11px !important; white-space: nowrap; flex-shrink: 0; min-height: 36px; }
 
-  .pill {
-    padding: 6px 12px !important;
-    font-size: 11px !important;
-    white-space: nowrap;
-  }
+  /* ── Anime Cards Grid ── */
+  .anime-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+  .anime-card { padding: 0 0 10px 0 !important; border-radius: 16px !important; overflow: hidden; display: flex; flex-direction: column; }
+  .anime-card-cover { height: 175px !important; width: 100%; object-fit: cover; border-radius: 0 !important; }
+  .anime-card-body { padding: 8px 10px 0 10px !important; flex: 1; }
+  .anime-card-title { font-size: 12px !important; line-height: 1.3 !important; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .anime-card-desc { display: none !important; }
+  .anime-card-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .anime-card-meta span, .badge { font-size: 10px !important; padding: 2px 6px !important; border-radius: 6px !important; }
 
-  /* Anime Cards Grid for Mobile */
-  .anime-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-  }
-
-  .anime-card {
-    padding: 10px !important;
-  }
-
-  .anime-card-cover {
-    height: 170px !important;
-  }
-
-  .anime-card-title {
-    font-size: 12px !important;
-    line-height: 1.3 !important;
-    max-height: 32px;
-    overflow: hidden;
-  }
-
-  .anime-card-desc {
-    display: none; /* Hide long description on mobile card to keep tight */
-  }
-
+  /* Action buttons — 3 columns, NEVER cut off */
   .anime-card-actions {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 4px !important;
-    margin-top: 8px;
+    margin: 8px 10px 0 10px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+  }
+  .anime-card-actions .btn {
+    padding: 7px 2px !important; font-size: 10px !important;
+    justify-content: center; border-radius: 8px !important;
+    min-height: 32px; white-space: nowrap; overflow: hidden;
   }
 
-  .anime-card-actions button {
-    padding: 6px 2px !important;
-    font-size: 10px !important;
-    justify-content: center;
-    border-radius: 8px !important;
-  }
-
-  /* Edit Modal Bottom Sheet */
-  .modal-overlay {
-    padding: 0 !important;
-    align-items: flex-end !important;
-  }
+  /* ── Modal Bottom Sheet (Full iOS Safari Scroll Fix) ── */
+  .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
 
   .modal-card {
+    width: 100% !important;
     max-width: 100% !important;
-    height: 90vh !important;
-    max-height: 90vh !important;
+    height: 92vh !important;
+    max-height: 92vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
-    border-top-left-radius: 24px !important;
-    border-top-right-radius: 24px !important;
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+    padding-top: 6px;
   }
 
-  .modal-header {
-    padding: 14px 16px;
+  .modal-card::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin: 0 auto 6px auto;
+    flex-shrink: 0;
   }
 
+  /* Fixed header */
+  .modal-header { padding: 10px 16px !important; flex-shrink: 0; }
+  .modal-header h3 { font-size: 15px !important; }
+
+  /* Tab nav: horizontally scrollable */
   .modal-tab-nav {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 0 10px;
+    overflow-x: auto !important; -webkit-overflow-scrolling: touch;
+    padding: 0 8px !important; flex-shrink: 0; scrollbar-width: none;
   }
+  .modal-tab-nav::-webkit-scrollbar { display: none; }
+  .mtab { padding: 10px 14px !important; font-size: 12px !important; white-space: nowrap; }
 
-  .mtab {
-    padding: 10px 12px;
-    font-size: 11px;
-    white-space: nowrap;
-  }
-
+  /* CRITICAL: The ONLY scrollable zone — isolates iOS touch scroll */
   .modal-tab-content {
-    padding: 14px 12px !important;
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    padding: 14px 14px 60px 14px !important;
   }
 
-  .form-row {
-    flex-direction: column !important;
-    gap: 10px !important;
+  /* Touch-friendly form elements (font-size >= 16px prevents iOS auto-zoom) */
+  .form-group { margin-bottom: 14px; }
+  .form-group input, .form-group textarea, .form-group select {
+    font-size: 16px !important;
+    padding: 11px 14px !important;
+    min-height: 44px;
+    border-radius: 12px !important;
   }
+  .form-group textarea { min-height: 80px; resize: vertical; }
+  .form-group label { font-size: 11px; margin-bottom: 5px; }
 
-  .quality-grid {
-    grid-template-columns: 1fr !important;
-  }
+  /* Stack form rows */
+  .form-row { flex-direction: column !important; gap: 0 !important; }
 
-  .settings-grid {
-    grid-template-columns: 1fr !important;
-  }
+  /* Episode quality: 1 column */
+  .quality-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
 
-  .placement-cards-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
+  /* Episode chips: bigger touch targets */
+  .ep-chip { width: 38px !important; height: 38px !important; font-size: 12px !important; border-radius: 8px !important; }
+  .ep-grid-nav { max-height: 110px !important; }
+  .ep-dropdown-row { flex-wrap: wrap; gap: 8px; }
+  .ep-dropdown-row select { flex: 1; min-width: 120px; font-size: 14px !important; }
+  .ep-actions-row { flex-direction: column; gap: 8px; }
+  .ep-actions-row .btn { justify-content: center; min-height: 44px; }
 
+  /* Placement cards: 2 columns */
+  .placement-cards-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+  .placement-card-opt { padding: 12px !important; }
+  .pco-icon { font-size: 20px !important; }
+  .pco-title { font-size: 12px !important; }
+  .pco-desc { display: none; }
+
+  /* Settings: single column */
+  .settings-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .settings-card { padding: 16px !important; }
+  .data-actions-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+
+  /* Modal Footer: sticky, ALWAYS visible at bottom */
   .modal-footer {
-    padding: 12px 14px !important;
-    flex-direction: column;
-    gap: 8px;
+    padding: 10px 14px !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    flex-shrink: 0 !important;
   }
 
-  .modal-footer-left, .modal-footer-right {
-    width: 100%;
-  }
+  .modal-footer-left { flex: 1; }
+  .modal-footer-right { flex: 1; }
 
   .modal-footer button {
     flex: 1;
     justify-content: center;
-    padding: 10px;
-    font-size: 12px;
+    padding: 12px 8px !important;
+    font-size: 12px !important;
+    min-height: 44px;
   }
 
-  /* Auth Card PIN */
-  .auth-card {
-    margin: 16px;
-    padding: 24px 16px !important;
-  }
+  /* Genre tags */
+  .g-tag { padding: 5px 10px !important; font-size: 11px !important; min-height: 30px; }
+
+  /* Auth Card PIN Screen */
+  .auth-card { margin: 16px; padding: 24px 20px !important; }
+  .brand-logo h2 { font-size: 22px !important; }
+
+  /* Undo banner: above bottom nav */
+  .undo-banner { bottom: 80px !important; width: calc(100% - 32px); left: 16px; transform: none; }
 }
 
-/* iOS Safari Safe Area Fixes */
+/* Bottom Nav: safe area for iOS home bar */
+.mobile-nav-bar {
+  padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  height: auto !important;
+  min-height: 56px;
+}
+
+/* iOS Safari Fixes */
 @supports (-webkit-touch-callout: none) {
-  body {
-    min-height: -webkit-fill-available;
-  }
-  .modal-card {
-    padding-bottom: env(safe-area-inset-bottom, 20px);
-  }
+  body { min-height: -webkit-fill-available; }
+  .modal-overlay { overscroll-behavior: none; }
+  .modal-card { padding-bottom: env(safe-area-inset-bottom, 16px); }
 }
+
 
 
