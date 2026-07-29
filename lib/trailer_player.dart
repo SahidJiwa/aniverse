@@ -149,8 +149,83 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
       return widget.fallback;
     }
     if (kIsWeb) {
-      if (_viewId == null) return widget.fallback;
-      return HtmlElementView(viewType: _viewId!);
+      // YouTube blocks iframe embeds on localhost and most web origins.
+      // Show the poster + a YouTube play button that opens the trailer in a
+      // new tab on tap — best UX on web without CORS/embed restrictions.
+      if (widget.trailerUrl == null) return widget.fallback;
+      final trailerUrl = widget.trailerUrl!;
+      return GestureDetector(
+        onTap: () => openUrlInBrowser(trailerUrl),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            widget.fallback,
+            // Dark gradient overlay so the play button stands out
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.45),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // YouTube-style red play button in center
+            Center(
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF0000).withOpacity(0.9),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF0000).withOpacity(0.55),
+                      blurRadius: 28,
+                      spreadRadius: 6,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: 42,
+                ),
+              ),
+            ),
+            // "Tonton Trailer" label below button
+            Positioned(
+              bottom: 32,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: const Text(
+                    '▶ Tonton Trailer di YouTube',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
     if (_nativeController == null) return widget.fallback;
     return ClipRect(

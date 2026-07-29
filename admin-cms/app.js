@@ -368,9 +368,10 @@ function filterCategory(cat, el) {
 
 function switchTab(tab, el) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.mnav-item').forEach(i => i.classList.remove('active'));
   document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden'));
 
-  el.classList.add('active');
+  if (el) el.classList.add('active');
   document.getElementById(`view-${tab}`).classList.remove('hidden');
   if (tab === 'stats') renderStatsView();
 }

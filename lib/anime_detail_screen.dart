@@ -355,57 +355,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                                 fallback: buildPosterLayer(),
                               ),
                             ),
-                            // ── Interactive Trailer Button (Web & Mobile) ──────────
-                            Positioned(
-                              right: 16,
-                              bottom: 16,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    final cleanUrl = trailerUrl.trim();
-                                    html.window.open(cleanUrl, '_blank');
-                                  },
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.65),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: AppTheme.highlight.withOpacity(0.5),
-                                        width: 1.2,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppTheme.highlight.withOpacity(0.25),
-                                          blurRadius: 10,
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.play_circle_fill_rounded,
-                                          color: AppTheme.highlight,
-                                          size: 18,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'Trailer',
-                                          style: TextStyle(
-                                            color: AppTheme.textPrimary,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
                           ],
                         );
                       },
@@ -638,28 +587,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                           );
                         },
                       ),
-                      const SizedBox(height: 32),
-                      FutureBuilder<List<VoiceActorModel>>(
-                        future: _voiceActorsFuture,
-                        builder: (context, vaSnapshot) {
-                          final apiVAs = vaSnapshot.data ?? const [];
-                          // Priority: 1) API data  2) anime.voiceActors (from CMS)  3) local title-matched fallback
-                          final vaList = apiVAs.isNotEmpty
-                              ? apiVAs
-                              : widget.anime.voiceActors.isNotEmpty
-                                  ? widget.anime.voiceActors
-                                  : _getLocalVoiceActors(widget.anime);
 
-                          return VoiceActorsSection(
-                            voiceActors: vaList,
-                            isLoading: vaSnapshot.connectionState ==
-                                ConnectionState.waiting,
-                            error: (vaSnapshot.hasError && vaList.isEmpty)
-                                ? 'Voice actor data tidak tersedia saat ini.'
-                                : null,
-                          );
-                        },
-                      ),
                       const SizedBox(height: 20),
                       _WatchNowButton(
                         enabled: widget.anime.episodes.isNotEmpty,

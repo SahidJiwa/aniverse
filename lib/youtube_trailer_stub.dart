@@ -9,3 +9,6 @@
 void registerYoutubeTrailerElement(String youtubeVideoId, String viewId) {
   // No-op on non-web platforms.
 }
+
+/// No-op on non-web — url_launcher handles this on native.
+void openUrlInBrowser(String url) {}

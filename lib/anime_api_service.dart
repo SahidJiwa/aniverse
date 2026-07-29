@@ -1045,14 +1045,14 @@ query ($idMal: Int) {
         charVAs.add(CharacterVoiceActor(
           name: vaName, language: language, imageUrl: vaImage));
 
-        // vaMap is already in the exact shape VoiceActorModel.fromJson
-        // expects (Jikan's native format) — no synthetic reshaping needed
-        // like the old AniList-based path required.
-        voiceActors.add(VoiceActorModel.fromJson(
-          vaMap,
-          characterName: charName,
-          characterImageUrl: charImage,
-        ));
+        // Prioritize Japanese VAs for the main VoiceActorsSection horizontal list
+        if (language.toLowerCase() == 'japanese') {
+          voiceActors.add(VoiceActorModel.fromJson(
+            vaMap,
+            characterName: charName,
+            characterImageUrl: charImage,
+          ));
+        }
       }
 
       characters.add(CharacterModel(

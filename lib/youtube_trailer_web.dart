@@ -27,10 +27,11 @@ import 'dart:ui_web' as ui_web;
 /// (slightly odd) required combo for looping a single video, since loop=1
 /// alone only works for actual playlists.
 void registerYoutubeTrailerElement(String youtubeVideoId, String viewId) {
+  final currentOrigin = html.window.location.origin;
   final iframe = html.IFrameElement()
     ..src = 'https://www.youtube-nocookie.com/embed/$youtubeVideoId'
         '?autoplay=1&mute=1&controls=0&loop=1&playlist=$youtubeVideoId'
-        '&playsinline=1&modestbranding=1&rel=0&showinfo=0&disablekb=1'
+        '&playsinline=1&enablejsapi=1&rel=0&modestbranding=1'
     ..style.border = 'none'
     ..style.width = '100%'
     ..style.height = '100%'
@@ -41,4 +42,9 @@ void registerYoutubeTrailerElement(String youtubeVideoId, String viewId) {
     viewId,
     (int viewId) => iframe,
   );
+}
+
+/// Opens [url] in a new browser tab. Web-only — stub does nothing on native.
+void openUrlInBrowser(String url) {
+  html.window.open(url, '_blank');
 }
