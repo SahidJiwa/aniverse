@@ -15,14 +15,14 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'mock_data_service.dart';
-import 'continue_watching_model.dart';
-import 'tier_system.dart';
-import 'anime_model.dart';
+import '../mock_data_service.dart';
+import '../continue_watching_model.dart';
+import '../tier_system.dart';
+import '../anime_model.dart';
 import 'package:aniverse/app_theme.dart';
-import 'settings_screen.dart';
-import 'web_download_stub.dart'
-    if (dart.library.html) 'web_download_web.dart';
+import '../settings_screen.dart';
+import '../web_download_stub.dart'
+    if (dart.library.html) '../web_download_web.dart';
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 class _C {
