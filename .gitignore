@@ -7,3 +7,5 @@ build/
 *.7z
 *.apk
 *.ipa
+
+migration_package/service-account-key.json
