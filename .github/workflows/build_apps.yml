@@ -20,11 +20,13 @@ jobs:
           cache: true
 
       - name: Install Dependencies
-        run: flutter pub get
+        run: |
+          flutter precache --ios
+          flutter pub get
 
       - name: Build iOS App (.ipa unsigned for Sideload)
         run: |
-          flutter build ios --release --no-codesign
+          flutter build ios --release --no-codesign -v
           cd ios
           mkdir -p Payload
           mv ../build/ios/iphoneos/Runner.app Payload/
