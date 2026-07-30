@@ -1,0 +1,7 @@
+{
+  "name": "aniverse-migration",
+  "version": "1.0.0",
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

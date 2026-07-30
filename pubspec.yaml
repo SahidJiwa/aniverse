@@ -1,4 +1,4 @@
-name: aniverse
+﻿name: aniverse
 description: "A new Flutter project."
 publish_to: 'none'
 version: 1.0.0+1
@@ -19,6 +19,8 @@ dependencies:
   timezone: ^0.9.4
   permission_handler: ^11.3.1
   google_sign_in: ^6.2.1
+  firebase_core: ^3.8.0
+  cloud_firestore: ^5.6.0
 
 dev_dependencies:
   flutter_test:
@@ -43,6 +45,7 @@ flutter:
     - asset/images/vault/
     - assets/fonts/
     - assets/border/
+    - assets/images/voice_actors/
   fonts:
     - family: MPLUSRounded1c
       fonts:

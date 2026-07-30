@@ -47,6 +47,19 @@ class _GoogleSignInSheetState extends State<_GoogleSignInSheet> {
           ),
         );
       }
+    } on GoogleSignInFailure catch (e) {
+      // User cancelled, or a genuine sign-in/sync failure — either way,
+      // this is NOT a successful login. Show the message plainly instead
+      // of pretending it worked.
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);

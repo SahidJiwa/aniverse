@@ -65,17 +65,14 @@ List<String> corsProxyCandidates(String? url) {
     return [cleanUrl];
   }
 
-  if (cleanUrl.contains('wsrv.nl')) {
-    return [cleanUrl];
-  }
-
-  // Primary: direct clean URL
-  // Secondary: wsrv.nl proxy (works 100% on Flutter Web Chrome CORS without 403)
-  final wsrvUrl = 'https://wsrv.nl/?url=${Uri.encodeComponent(cleanUrl)}';
+  // Generate robust proxy URLs for Flutter Web CORS bypass
+  final weservProxy = 'https://images.weserv.nl/?url=${Uri.encodeComponent(cleanUrl)}';
+  final allOriginsProxy = 'https://api.allorigins.win/raw?url=${Uri.encodeComponent(cleanUrl)}';
 
   return [
     cleanUrl,
-    wsrvUrl,
+    weservProxy,
+    allOriginsProxy,
   ];
 }
 

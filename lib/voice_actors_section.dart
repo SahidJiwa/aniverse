@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
+import 'proxied_network_image.dart';
 import 'voice_actor_model.dart';
 import 'widgets/liquid_glass.dart';
 
@@ -564,27 +565,21 @@ class _NetworkImageWithFallback extends StatelessWidget {
     if (url.isEmpty) {
       return _Placeholder(width: width, height: height);
     }
-    // Clean URL
-    final cleanUrl = url.trim();
-    return Image.network(
-      cleanUrl,
+    if (url.startsWith('assets/')) {
+      return Image.asset(
+        url,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _Placeholder(width: width, height: height),
+      );
+    }
+    return ProxiedNetworkImage.forUrl(
+      url: url,
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => _Placeholder(width: width, height: height),
-      loadingBuilder: (_, child, progress) {
-        if (progress == null) return child;
-        return SizedBox(
-          width: width,
-          height: height,
-          child: Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppTheme.highlight,
-            ),
-          ),
-        );
-      },
+      fallback: _Placeholder(width: width, height: height),
     );
   }
 }

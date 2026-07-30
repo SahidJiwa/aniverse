@@ -1,0 +1,31 @@
+CARA MENJALANKAN MIGRASI KE FIRESTORE
+======================================
+
+Prasyarat: Node.js sudah terinstall di PC kamu.
+Cek dengan buka Command Prompt / Terminal, ketik: node -v
+Kalau belum ada, download dulu di https://nodejs.org (pilih versi LTS)
+
+Langkah-langkah:
+
+1. Extract/taruh folder ini di PC kamu, misal di C:\aniverse\migration
+
+2. Buka Command Prompt / PowerShell, masuk ke folder itu:
+   cd C:\aniverse\migration
+
+3. Install dependency:
+   npm install
+
+4. Jalankan migrasi:
+   node migrate_to_firestore.js
+
+5. Kalau berhasil, akan muncul tulisan:
+   "✅ Migrasi selesai. Total 3 anime masuk ke koleksi 'anime' di Firestore."
+
+6. Cek di Firebase Console > Firestore Database > koleksi "anime"
+   — harusnya sudah muncul 3 dokumen anime (Frieren, dll), 
+   dan dokumen percobaan "Test: lope" masih ada terpisah (boleh dihapus manual).
+
+PENTING - KEAMANAN:
+Setelah migrasi selesai dan berhasil, HAPUS file service-account-key.json
+dari folder ini (atau simpan di tempat aman, jangan di folder yang ke-share
+ke orang lain / ke-upload ke GitHub publik).

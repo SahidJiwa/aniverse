@@ -29,12 +29,13 @@ import 'dart:ui_web' as ui_web;
 void registerYoutubeTrailerElement(String youtubeVideoId, String viewId) {
   final currentOrigin = html.window.location.origin;
   final iframe = html.IFrameElement()
-    ..src = 'https://www.youtube-nocookie.com/embed/$youtubeVideoId'
+    ..src = 'https://www.youtube.com/embed/$youtubeVideoId'
         '?autoplay=1&mute=1&controls=0&loop=1&playlist=$youtubeVideoId'
-        '&playsinline=1&enablejsapi=1&rel=0&modestbranding=1'
+        '&playsinline=1&enablejsapi=1&rel=0&showinfo=0&iv_load_policy=3'
     ..style.border = 'none'
     ..style.width = '100%'
     ..style.height = '100%'
+    ..style.pointerEvents = 'none'
     ..allow = 'autoplay; encrypted-media; picture-in-picture'
     ..allowFullscreen = false;
 

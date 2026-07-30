@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:aniverse/app_theme.dart';
+import 'auth_service.dart';
+import 'user_model.dart';
+import 'widgets/auth_modal.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -178,6 +181,38 @@ class _SettingsScreenState extends State<SettingsScreen>
                         label: 'Akun',
                         accentColor: AppTheme.highlight,
                         children: [
+                          // Status login Google — tile ini otomatis berubah
+                          // tampilan begitu AuthService.currentUserNotifier
+                          // berubah (login/logout dari mana pun di app).
+                          ValueListenableBuilder<UserModel?>(
+                            valueListenable: AuthService.currentUserNotifier,
+                            builder: (context, user, _) {
+                              if (user == null) {
+                                return _SettingsTile(
+                                  icon: Icons.login_rounded,
+                                  label: 'Masuk dengan Google',
+                                  subtitle:
+                                      'Simpan progress & sinkron antar device',
+                                  onTap: () =>
+                                      AuthModal.showGoogleSignIn(context),
+                                  trailing: const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: AppTheme.textSecondary,
+                                      size: 20),
+                                );
+                              }
+                              return _SettingsTile(
+                                icon: Icons.verified_user_rounded,
+                                label: user.name,
+                                subtitle:
+                                    '${user.email} • ${user.formattedAccountId}',
+                                onTap: () => _confirmSignOut(context),
+                                trailing: const Icon(Icons.logout_rounded,
+                                    color: AppTheme.textSecondary, size: 20),
+                              );
+                            },
+                          ),
+                          _Divider(),
                           _SettingsTile(
                             icon: Icons.edit_rounded,
                             label: 'Edit Profil',
@@ -519,6 +554,52 @@ class _SettingsScreenState extends State<SettingsScreen>
                     size: 18),
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmSignOut(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Keluar Akun?',
+            style: TextStyle(
+                color: AppTheme.textPrimary, fontWeight: FontWeight.w700)),
+        content: const Text(
+          'Progress kamu tetap aman tersimpan di cloud. Kamu bisa login lagi kapan saja untuk melanjutkan.',
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Batal',
+                style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await AuthService.signOut();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Berhasil keluar akun'),
+                    backgroundColor: AppTheme.surface,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              }
+            },
+            child: const Text('Keluar',
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

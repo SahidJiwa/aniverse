@@ -845,7 +845,93 @@ function renderStatsView() {
   `;
 }
 
-function syncToAniVerseApp() {
+// ══════════════════════════════════════════════════════════════
+// GITHUB AUTO-COMMIT — realtime sync catalog_cloud.json ke repo
+// ══════════════════════════════════════════════════════════════
+const GH_OWNER = "SahidJiwa";
+const GH_REPO = "aniverse";
+const GH_PATH = "admin-cms/catalog_cloud.json";
+const GH_BRANCH = "main";
+const STORAGE_GH_TOKEN_KEY = "aniverse_github_token";
+
+function getGitHubToken() {
+  let token = localStorage.getItem(STORAGE_GH_TOKEN_KEY);
+  if (!token) {
+    token = prompt(
+      "Masukkan GitHub Personal Access Token (fine-grained, scope: Contents Read & Write, repo aniverse saja).\n" +
+      "Token akan disimpan hanya di browser ini (localStorage), tidak pernah dikirim ke server lain."
+    );
+    if (token) localStorage.setItem(STORAGE_GH_TOKEN_KEY, token.trim());
+  }
+  return token ? token.trim() : null;
+}
+
+function clearGitHubToken() {
+  localStorage.removeItem(STORAGE_GH_TOKEN_KEY);
+  showToast("Token GitHub dihapus dari browser ini.");
+}
+
+// Encode UTF-8 string aman ke base64 (JSON kita bisa berisi karakter non-ASCII, misal emoji/genre)
+function utf8ToBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+async function commitToGitHub(jsonData, commitMessage) {
+  const token = getGitHubToken();
+  if (!token) {
+    showToast("Sinkron dibatalkan: token GitHub tidak diisi.", "error");
+    return false;
+  }
+
+  const apiUrl = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+  const headers = {
+    "Authorization": `Bearer ${token}`,
+    "Accept": "application/vnd.github+json"
+  };
+
+  try {
+    // 1. Ambil sha file saat ini (wajib untuk GitHub API agar tahu ini "update", bukan "create")
+    let sha = null;
+    const getRes = await fetch(`${apiUrl}?ref=${GH_BRANCH}`, { headers });
+    if (getRes.status === 200) {
+      const getData = await getRes.json();
+      sha = getData.sha;
+    } else if (getRes.status !== 404) {
+      const errData = await getRes.json().catch(() => ({}));
+      throw new Error(`Gagal ambil file (${getRes.status}): ${errData.message || "unknown"}`);
+    }
+
+    // 2. Commit (PUT) isi baru
+    const content = utf8ToBase64(JSON.stringify(jsonData, null, 2));
+    const putRes = await fetch(apiUrl, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: commitMessage,
+        content: content,
+        branch: GH_BRANCH,
+        ...(sha ? { sha } : {})
+      })
+    });
+
+    if (!putRes.ok) {
+      const errData = await putRes.json().catch(() => ({}));
+      if (putRes.status === 401) throw new Error("Token salah/expired. Klik Sinkron lagi untuk isi token baru.");
+      if (putRes.status === 409) throw new Error("Konflik versi file — coba Sinkron lagi.");
+      throw new Error(`Gagal commit (${putRes.status}): ${errData.message || "unknown"}`);
+    }
+
+    return true;
+  } catch (err) {
+    console.error("commitToGitHub error:", err);
+    showToast(`❌ Auto-commit GitHub gagal: ${err.message}`, "error");
+    // Kalau token ternyata salah, hapus supaya lain kali diminta ulang
+    if (String(err.message).includes("Token salah")) clearGitHubToken();
+    return false;
+  }
+}
+
+async function syncToAniVerseApp() {
   saveCatalogData();
   const cleanExport = catalogData.map(a => ({
     id: a.id,
@@ -871,9 +957,19 @@ function syncToAniVerseApp() {
   const jadwalCount = cleanExport.filter(a => a.placement.includes('jadwal')).length;
   const featuredCount = cleanExport.filter(a => a.placement.includes('home_featured')).length;
 
-  // Auto trigger catalog_cloud.json download & save notification
-  downloadJSON(cleanExport, "catalog_cloud.json");
-  showToast(`⚡ SINGKRONISASI SUKSES! ${cleanExport.length} Anime — 🔥${trendingCount} Trending · 📅${jadwalCount} Jadwal · 🌟${featuredCount} Featured`);
+  showToast("⏳ Mengirim ke GitHub...", "success");
+  const ok = await commitToGitHub(
+    cleanExport,
+    `Update katalog via Admin CMS — ${new Date().toISOString()}`
+  );
+
+  if (ok) {
+    showToast(`⚡ SINGKRONISASI SUKSES (LIVE ke GitHub)! ${cleanExport.length} Anime — 🔥${trendingCount} Trending · 📅${jadwalCount} Jadwal · 🌟${featuredCount} Featured`);
+  } else {
+    // Fallback: kalau gagal commit (misal offline), tetap sediakan file lokal biar tidak kehilangan data
+    downloadJSON(cleanExport, "catalog_cloud.json");
+    showToast("⚠️ Auto-commit gagal, file catalog_cloud.json didownload manual sebagai backup.", "error");
+  }
 }
 
 function escapeHtml(str) {

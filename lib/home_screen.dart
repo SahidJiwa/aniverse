@@ -22,6 +22,7 @@ import 'premium_pass_screen.dart';
 import 'jadwal_screen.dart';
 import 'library_screen.dart';
 import 'widgets/liquid_glass.dart';
+import 'admin_panel_screen.dart';
 
 const _kBg = AppTheme.background;
 const _kPurple = AppTheme.highlight;
@@ -357,6 +358,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  /// Filters the catalog for Hero banner display, respecting admin-assigned
+  /// `placement`. Strictly 'home_featured' only — no fallback to
+  /// 'home_trending' or the full catalog, because either of those let
+  /// anime tagged only explore/jadwal leak into the Hero (e.g. Frieren
+  /// S1/S2 showing up despite never being checked as home_featured).
+  /// If nothing is tagged home_featured, Hero is simply empty/hidden.
+  List<AnimeModel> _resolveHeroList(List<AnimeModel> src) {
+    return src.where((a) => a.placement.contains('home_featured')).toList();
+  }
+
   String _greeting() {
     final h = DateTime.now().hour;
     if (h < 12) return 'Selamat pagi';
@@ -368,7 +379,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final src = CatalogStore.instance.getCustomCatalog();
-    final heroList = src;
+    final heroList = _resolveHeroList(src);
     final featured = heroList.isNotEmpty
         ? heroList[_currentPage % heroList.length]
         : null;
@@ -936,10 +947,16 @@ class _HomeLobbyV4 extends StatelessWidget {
         final cw = cwList.isNotEmpty ? cwList.first : null;
         final hasCw =
             cw != null && cw.watchProgress > 0 && cw.watchProgress < 0.95;
-        // Sourced from getMockAnimes() sorted by index (newest first)
-        // addedAt field may not exist in all AnimeModel versions, so we
-        // fallback to the catalog order.
-        final recentlyAdded = MockDataService.getMockAnimes().take(10).toList();
+        // Sourced from the real catalog (CatalogStore), respecting the
+        // admin-assigned 'home_new' placement tag — NOT MockDataService,
+        // which was dummy/placeholder data unrelated to Firestore entries
+        // (this was also why an "Untitled" mock entry was leaking into
+        // Trending Now).
+        final recentlyAdded = allAnimes
+            .where((a) => a.placement.contains('home_new'))
+            .toList()
+          ..sort((a, b) =>
+              (b.addedAt ?? DateTime(0)).compareTo(a.addedAt ?? DateTime(0)));
 
         // ── Section list (same order/content as before) ──
         // Built once per rebuild, then handed to ListView.builder below so
@@ -991,24 +1008,24 @@ class _HomeLobbyV4 extends StatelessWidget {
             const SizedBox(height: 18),
           ],
 
-          // ── 6. TRENDING NOW ──
-          _SectionLabel(label: 'TRENDING NOW', icon: Icons.trending_up_rounded),
-          const SizedBox(height: 10),
-          RepaintBoundary(
-            child: _TrendingRow(
-              animes: () {
-                final trending = allAnimes
-                    .where((a) => a.isTrending)
-                    .toList();
-                if (trending.isNotEmpty) return trending;
-                // Fallback: no anime flagged trending (e.g. small dataset) —
-                // show top-rated instead so the section is never empty.
-                final byRating = List<AnimeModel>.from(allAnimes)
-                  ..sort((a, b) => b.rating.compareTo(a.rating));
-                return byRating.take(10).toList();
-              }(),
+          // ── 6. TRENDING NOW — placement-only, no legacy isTrending
+          // fallback. The old CustomAnimeCatalog hardcode has isTrending:
+          // true baked into every entry (including Frieren), so falling
+          // back to it defeats the whole point of the placement checkbox
+          // — the admin unchecks 'home_trending' and the anime shows up
+          // anyway. If nothing is tagged, the section just doesn't render.
+          if (allAnimes.any((a) => a.placement.contains('home_trending'))) ...[
+            _SectionLabel(label: 'TRENDING NOW', icon: Icons.trending_up_rounded),
+            const SizedBox(height: 10),
+            RepaintBoundary(
+              child: _TrendingRow(
+                animes: allAnimes
+                    .where((a) => a.placement.contains('home_trending'))
+                    .toList(),
+              ),
             ),
-          ),
+            SizedBox(height: 28),
+          ],
           SizedBox(height: 28),
 
           // ═══ GAMIFICATION / SOCIAL / SHOP — bento grid with themed
@@ -1898,9 +1915,9 @@ class _ContinueWatchingCardState extends State<_ContinueWatchingCard> {
     final title = item.animeTitle.isNotEmpty
         ? item.animeTitle
         : (anime?.title ?? '');
-    final storedThumb = item.thumbnailUrl.isNotEmpty
-        ? item.thumbnailUrl
-        : (anime?.imageUrl ?? '');
+    final storedThumb = (anime?.imageUrl.isNotEmpty ?? false)
+        ? anime!.imageUrl
+        : item.thumbnailUrl;
     if (title.isEmpty || !_isPlaceholder(storedThumb)) return;
 
     _resolvingForTitle = title;
@@ -1932,11 +1949,15 @@ class _ContinueWatchingCardState extends State<_ContinueWatchingCard> {
     final title = item.animeTitle.isNotEmpty
         ? item.animeTitle
         : (anime?.title ?? 'Unknown');
-    final storedThumb = item.thumbnailUrl.isNotEmpty
-        ? item.thumbnailUrl
-        : (anime?.imageUrl ?? '');
-    // Prefer the live-resolved poster over a known placeholder; otherwise
-    // use whatever was stored (a real URL, most of the time).
+    // Admin panel (CatalogStore) is the source of truth for posters, so
+    // anime.imageUrl always wins when available. item.thumbnailUrl (the
+    // snapshot cached at the time "continue watching" was saved) is only
+    // used as a fallback if the anime was removed from the catalog.
+    final storedThumb = (anime?.imageUrl.isNotEmpty ?? false)
+        ? anime!.imageUrl
+        : item.thumbnailUrl;
+    // Prefer a live-fetched poster over a known placeholder; otherwise
+    // use whatever was resolved above.
     final thumb = (_resolvedThumb != null && _resolvedThumb!.isNotEmpty)
         ? _resolvedThumb!
         : (_isPlaceholder(storedThumb) ? '' : storedThumb);
@@ -4788,24 +4809,29 @@ class _TopRail extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ── Logo with warm gold halo glow (matches AniVerse gold-A mark) ──
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFC9A24A).withValues(alpha: 0.28),
-                      blurRadius: 18,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Image.asset(
-                  'asset/logo aniverse.png',
+              // Tap 7x dalam 3 detik untuk buka dialog PIN Admin Panel.
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => AdminAccess.registerTap(context),
+                child: Container(
                   width: 40,
                   height: 40,
-                  fit: BoxFit.contain,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFC9A24A).withValues(alpha: 0.28),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'asset/logo aniverse.png',
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               const SizedBox(width: 10),

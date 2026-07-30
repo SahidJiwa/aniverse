@@ -1,17 +1,34 @@
 // auth_service.dart — AniVerse Authentication & Sync Service
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 // ignore: depend_on_referenced_packages
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'user_model.dart';
+import 'cloud_user_data_service.dart';
+
+/// Thrown when Google Sign-In genuinely fails or is cancelled by the user.
+/// Callers (e.g. auth_modal.dart) should catch this and show a real error —
+/// never silently fall back to a fake account.
+class GoogleSignInFailure implements Exception {
+  final String message;
+  GoogleSignInFailure(this.message);
+  @override
+  String toString() => message;
+}
 
 class AuthService {
   AuthService._();
 
   static const _kUserPrefKey = 'aniverse_logged_user_v1';
-  static const _kNextAccountIdKey = 'aniverse_next_account_id_seq_v1';
-  static const _kAccountRegistryKey = 'aniverse_account_registry_v1';
+
+  // Firestore: a single counter document guarantees accountIdNumber is
+  // unique across ALL devices/users, not just per-device like the old
+  // SharedPreferences-based registry (which caused every device to hand
+  // out #0000 independently).
+  static const _kCountersCollection = 'meta';
+  static const _kAccountCounterDoc = 'account_id_counter';
 
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
@@ -24,7 +41,9 @@ class AuthService {
   static final ValueNotifier<UserModel?> currentUserNotifier =
       ValueNotifier<UserModel?>(null);
 
-  /// Inisialisasi AuthService saat aplikasi pertama kali dibuka
+  /// Inisialisasi AuthService saat aplikasi pertama kali dibuka.
+  /// Loads the last-known local session immediately for fast UI, then lets
+  /// CloudUserDataService reconcile with Firestore in the background.
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     final rawUser = prefs.getString(_kUserPrefKey);
@@ -38,105 +57,96 @@ class AuthService {
     }
   }
 
-  /// Autentikasi Google Sign-In Asli via SDK
-  static Future<UserModel> signInWithGoogle({
-    String? mockName,
-    String? mockEmail,
-    String? mockPhotoUrl,
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
+  /// Allocates the next sequential accountIdNumber atomically via a
+  /// Firestore transaction, so two users signing up at the same moment on
+  /// different devices can never receive the same number.
+  static Future<int> _allocateAccountIdNumber() async {
+    final counterRef = FirebaseFirestore.instance
+        .collection(_kCountersCollection)
+        .doc(_kAccountCounterDoc);
 
-    // Helper untuk alokasi ID berurutan mulai dari 0
-    int getOrAssignAccountId(String userKey) {
-      final registryRaw = prefs.getString(_kAccountRegistryKey);
-      Map<String, dynamic> registry = {};
-      if (registryRaw != null && registryRaw.isNotEmpty) {
-        try {
-          registry = jsonDecode(registryRaw);
-        } catch (_) {}
-      }
+    return FirebaseFirestore.instance.runTransaction<int>((tx) async {
+      final snap = await tx.get(counterRef);
+      final current = (snap.data()?['next'] as num?)?.toInt() ?? 0;
+      tx.set(counterRef, {'next': current + 1}, SetOptions(merge: true));
+      return current;
+    });
+  }
 
-      if (registry.containsKey(userKey)) {
-        return (registry[userKey] as num).toInt();
-      }
-
-      // User Baru! Ambil urutan ID berikutnya (Mulai dari 0)
-      final currentNextId = prefs.getInt(_kNextAccountIdKey) ?? 0;
-      registry[userKey] = currentNextId;
-
-      // Simpan urutan berikutnya
-      prefs.setInt(_kNextAccountIdKey, currentNextId + 1);
-      prefs.setString(_kAccountRegistryKey, jsonEncode(registry));
-
-      debugPrint('[AuthService] Pendaftaran akun baru! Disertakan Account ID: #$currentNextId');
-      return currentNextId;
+  /// Autentikasi Google Sign-In. Throws [GoogleSignInFailure] if the user
+  /// cancels or the SDK errors out — there is no mock/fake-user fallback,
+  /// so a caller can never mistake a failed login for a successful one.
+  static Future<UserModel> signInWithGoogle() async {
+    GoogleSignInAccount? googleUser;
+    try {
+      googleUser = await _googleSignIn.signIn();
+    } catch (e) {
+      debugPrint('[AuthService] Google Sign-In SDK error: $e');
+      throw GoogleSignInFailure('Login Google gagal: $e');
     }
+
+    if (googleUser == null) {
+      // User closed the Google account picker without choosing — this is
+      // a genuine cancellation, not an error to paper over.
+      throw GoogleSignInFailure('Login dibatalkan.');
+    }
+
+    final usersRef =
+        FirebaseFirestore.instance.collection('users').doc(googleUser.id);
 
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final existingDoc = await usersRef.get();
 
-      if (googleUser != null) {
-        final existingRaw = prefs.getString(_kUserPrefKey);
-
-        int level = 1;
-        int xp = 0;
-        int coins = 100;
-        DateTime joined = DateTime.now();
-
-        if (existingRaw != null && existingRaw.isNotEmpty) {
-          try {
-            final Map<String, dynamic> oldData = jsonDecode(existingRaw);
-            level = (oldData['level'] as int?) ?? 1;
-            xp = (oldData['xp'] as int?) ?? 0;
-            coins = (oldData['coins'] as int?) ?? 100;
-            if (oldData['joinedAt'] != null) {
-              joined = DateTime.tryParse(oldData['joinedAt'] as String) ?? DateTime.now();
-            }
-          } catch (_) {}
-        }
-
-        final assignedAccountId = getOrAssignAccountId(googleUser.email);
-
-        final user = UserModel(
+      UserModel user;
+      if (existingDoc.exists) {
+        // Returning user — keep their existing progress, just refresh
+        // profile fields that may have changed on the Google side.
+        final data = existingDoc.data()!;
+        final existing = UserModel.fromJson(data);
+        user = UserModel(
           id: googleUser.id,
-          accountIdNumber: assignedAccountId,
-          name: googleUser.displayName ?? mockName ?? 'Otaku AniVerse',
+          accountIdNumber: existing.accountIdNumber,
+          name: googleUser.displayName ?? existing.name,
           email: googleUser.email,
-          photoUrl: googleUser.photoUrl ?? mockPhotoUrl ?? 'https://lh3.googleusercontent.com/a/ACg8ocI8z-sample-google-avatar',
-          level: level,
-          xp: xp,
-          coins: coins,
-          joinedAt: joined,
+          photoUrl: googleUser.photoUrl ?? existing.photoUrl,
+          level: existing.level,
+          xp: existing.xp,
+          coins: existing.coins,
+          joinedAt: existing.joinedAt,
         );
-
-        currentUserNotifier.value = user;
-        await prefs.setString(_kUserPrefKey, jsonEncode(user.toJson()));
-        return user;
+        await usersRef.set(user.toJson(), SetOptions(merge: true));
+      } else {
+        // Brand new account — allocate a globally-unique sequential ID.
+        final accountIdNumber = await _allocateAccountIdNumber();
+        user = UserModel(
+          id: googleUser.id,
+          accountIdNumber: accountIdNumber,
+          name: googleUser.displayName ?? 'Otaku AniVerse',
+          email: googleUser.email,
+          photoUrl: googleUser.photoUrl ?? '',
+          level: 1,
+          xp: 0,
+          coins: 100,
+          joinedAt: DateTime.now(),
+        );
+        await usersRef.set(user.toJson());
+        debugPrint('[AuthService] Pendaftaran akun baru! Account ID: #$accountIdNumber');
       }
+
+      currentUserNotifier.value = user;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kUserPrefKey, jsonEncode(user.toJson()));
+
+      // Kick off realtime listener so XP/coins/level changes from other
+      // devices reflect here live.
+      CloudUserDataService.listenToAuthChanges();
+
+      return user;
     } catch (e) {
-      debugPrint('[AuthService] Google Sign-In native SDK notice/fallback: $e');
+      debugPrint('[AuthService] Firestore user sync error: $e');
+      throw GoogleSignInFailure(
+          'Login berhasil tapi gagal sinkron data: $e');
     }
-
-    // Fallback pendaftaran / mock user
-    final fallbackEmail = mockEmail ?? 'user.aniverse@gmail.com';
-    final assignedAccountId = getOrAssignAccountId(fallbackEmail);
-
-    final user = UserModel(
-      id: 'google_${DateTime.now().millisecondsSinceEpoch}',
-      accountIdNumber: assignedAccountId,
-      name: mockName ?? 'Otaku AniVerse',
-      email: fallbackEmail,
-      photoUrl: mockPhotoUrl ??
-          'https://lh3.googleusercontent.com/a/ACg8ocI8z-sample-google-avatar',
-      level: 12,
-      xp: 2450,
-      coins: 480,
-      joinedAt: DateTime.now(),
-    );
-
-    currentUserNotifier.value = user;
-    await prefs.setString(_kUserPrefKey, jsonEncode(user.toJson()));
-    return user;
   }
 
   /// Logout akun

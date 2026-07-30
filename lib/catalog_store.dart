@@ -7,9 +7,11 @@
 // • Any screen that was using CustomAnimeCatalog should use CatalogStore instead
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:http/http.dart' as http;
 import 'anime_model.dart';
@@ -40,7 +42,7 @@ AnimeModel _animeFromJson(Map<String, dynamic> j) {
       ?? (j['episodeCount'] as int?)
       ?? (j['episodes'] as int?)
       ?? 12;
-  final tag = (j['title'] as String).replaceAll(' ', '');
+  final tag = ((j['title'] as String?) ?? 'Untitled').replaceAll(' ', '');
   final epLink = j['catalogEpisodeLink'] as String?;
   final releaseDay = j['releaseDay'] as int?;
 
@@ -52,8 +54,11 @@ AnimeModel _animeFromJson(Map<String, dynamic> j) {
   }
 
   return AnimeModel(
-    id: j['id'] as String,
-    title: j['title'] as String,
+    // id/title kadang null di dokumen Firestore lama/belum lengkap — pakai
+    // fallback aman alih-alih crash total (yang sebelumnya bikin SEMUA
+    // dokumen gagal ke-parse dan _firestoreHasResponded tidak pernah true).
+    id: (j['id'] as String?) ?? (j['title'] as String?) ?? 'unknown-${DateTime.now().microsecondsSinceEpoch}',
+    title: (j['title'] as String?) ?? 'Untitled',
     imageUrl: j['imageUrl'] as String? ?? '',
     rating: (j['rating'] as num?)?.toDouble() ?? 0.0,
     genres: (j['genres'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
@@ -81,11 +86,22 @@ class CatalogStore extends ChangeNotifier {
 
   List<AnimeModel> _userEntries = [];
   bool _ready = false;
+  StreamSubscription<QuerySnapshot>? _firestoreSub;
+
+  // Jadi true begitu Firestore pernah kirim snapshot pertama (walau kosong).
+  // Dipakai supaya syncFromCloud() dan fallback hardcoded tidak menimpa
+  // data Firestore yang sudah dianggap authoritative.
+  bool _firestoreHasResponded = false;
 
   bool get isReady => _ready;
 
-  // ── All entries: User/Admin entries from Cloud CMS, fallback to baseline ──
+  // ── All entries: Firestore adalah source of truth utama begitu sudah
+  // pernah respond (walau hasilnya kosong, itu tetap valid — bukan alasan
+  // untuk fallback ke katalog hardcoded lama).
+  // Hardcoded catalog HANYA dipakai sebelum Firestore pernah connect sama
+  // sekali (misal saat offline di run pertama).
   List<AnimeModel> get all {
+    if (_firestoreHasResponded) return _userEntries;
     if (_userEntries.isNotEmpty) return _userEntries;
     return CustomAnimeCatalog.all;
   }
@@ -125,7 +141,9 @@ class CatalogStore extends ChangeNotifier {
         final list = (jsonDecode(raw) as List<dynamic>)
             .map((e) => _animeFromJson(e as Map<String, dynamic>))
             .toList();
-        _userEntries = list;
+        // Cache lokal ini cuma render sementara sebelum Firestore connect —
+        // dedupe jaga-jaga kalau cache lama sempat kesimpan data ganda.
+        _userEntries = _dedupeById(list);
       }
     } catch (e) {
       debugPrint('[CatalogStore] init local error: $e');
@@ -133,31 +151,88 @@ class CatalogStore extends ChangeNotifier {
     _ready = true;
     notifyListeners();
 
-    // Background sync from Cloud Remote Endpoint & setup auto-refresh
-    await syncFromCloud();
+    // Realtime sync dari Firestore — auto update begitu ada perubahan dari Admin
+    _listenToFirestore();
+  }
+
+  /// Dengarkan koleksi "anime" di Firestore secara realtime.
+  /// Setiap ada tambah/edit/hapus dari Admin Panel, _userEntries otomatis
+  /// ter-update dan semua screen yang listen ke CatalogStore langsung refresh.
+  void _listenToFirestore() {
+    _firestoreSub?.cancel();
+    _firestoreSub = FirebaseFirestore.instance
+        .collection('anime')
+        .snapshots()
+        .listen((snapshot) {
+      final cloudEntries = <AnimeModel>[];
+      for (final doc in snapshot.docs) {
+        try {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['id'] = data['id'] ?? doc.id;
+          cloudEntries.add(_animeFromJson(data));
+        } catch (e) {
+          // Skip dokumen yang bermasalah, tapi jangan gagalkan semua —
+          // ini yang sebelumnya bikin seluruh snapshot gagal ke-parse
+          // gara-gara satu field null di satu dokumen.
+          debugPrint('[CatalogStore] Skip 1 doc gagal parse (id: ${doc.id}): $e');
+        }
+      }
+
+      try {
+        _userEntries = _dedupeById(cloudEntries);
+        _firestoreHasResponded = true;
+        _save();
+        notifyListeners();
+        debugPrint('[CatalogStore] Firestore realtime update: ${_userEntries.length} anime.');
+      } catch (e) {
+        debugPrint('[CatalogStore] Firestore parse error: $e');
+      }
+    }, onError: (e) {
+      debugPrint('[CatalogStore] Firestore listen error (fallback ke cache lokal): $e');
+    });
   }
 
   /// Sync real-time dengan Admin CMS Cloud JSON.
   /// Cloud JSON adalah Authoritative Single Source of Truth.
   Future<int> syncFromCloud() async {
+    // Firestore adalah authoritative source begitu sudah pernah respond.
+    // GitHub JSON ini cuma fallback offline sebelum Firestore connect —
+    // jangan biarkan dia menimpa data Firestore yang lebih baru, karena
+    // itu penyebab data ganda/stale (mis. Frieren muncul 2x).
+    if (_firestoreHasResponded) {
+      debugPrint('[CatalogStore] syncFromCloud dilewati — Firestore sudah authoritative.');
+      return _userEntries.length;
+    }
     try {
       final res = await http.get(Uri.parse(_kCloudUrl)).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final listRaw = jsonDecode(res.body) as List<dynamic>;
         final cloudEntries = listRaw.map((e) => _animeFromJson(e as Map<String, dynamic>)).toList();
 
-        if (cloudEntries.isNotEmpty) {
-          _userEntries = cloudEntries;
+        if (cloudEntries.isNotEmpty && !_firestoreHasResponded) {
+          _userEntries = _dedupeById(cloudEntries);
           await _save();
           notifyListeners();
-          debugPrint('[CatalogStore] Realtime sync success: ${cloudEntries.length} anime loaded from Admin CMS.');
-          return cloudEntries.length;
+          debugPrint('[CatalogStore] Realtime sync success: ${_userEntries.length} anime loaded from Admin CMS.');
+          return _userEntries.length;
         }
       }
     } catch (e) {
       debugPrint('[CatalogStore] Cloud sync offline fallback to local cache: $e');
     }
     return _userEntries.length;
+  }
+
+  /// Hilangkan entri duplikat berdasarkan id (case/space-insensitive),
+  /// menjaga dari kasus id sama tapi beda casing/spasi dianggap 2 entri.
+  List<AnimeModel> _dedupeById(List<AnimeModel> entries) {
+    final seen = <String>{};
+    final result = <AnimeModel>[];
+    for (final a in entries) {
+      final key = a.id.trim().toLowerCase();
+      if (seen.add(key)) result.add(a);
+    }
+    return result;
   }
 
   Future<void> _save() async {
@@ -173,23 +248,50 @@ class CatalogStore extends ChangeNotifier {
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
   Future<void> add(AnimeModel anime) async {
-    _userEntries.insert(0, anime);
-    notifyListeners();
-    await _save();
+    try {
+      // Firestore adalah source of truth — tulis ke sini, listener
+      // realtime yang akan update _userEntries otomatis di semua device.
+      final data = _animeToJson(anime);
+      await FirebaseFirestore.instance
+          .collection('anime')
+          .doc(anime.id)
+          .set(data);
+    } catch (e) {
+      debugPrint('[CatalogStore] add() Firestore write error, fallback lokal: $e');
+      // Offline/gagal — tetap simpan lokal biar nggak hilang, tapi ini
+      // TIDAK akan sync ke device lain sampai koneksi pulih & di-retry.
+      _userEntries.insert(0, anime);
+      notifyListeners();
+      await _save();
+    }
   }
 
   Future<void> update(String id, AnimeModel updated) async {
-    final idx = _userEntries.indexWhere((a) => a.id == id);
-    if (idx == -1) return;
-    _userEntries[idx] = updated;
-    notifyListeners();
-    await _save();
+    try {
+      final data = _animeToJson(updated);
+      await FirebaseFirestore.instance
+          .collection('anime')
+          .doc(id)
+          .set(data);
+    } catch (e) {
+      debugPrint('[CatalogStore] update() Firestore write error, fallback lokal: $e');
+      final idx = _userEntries.indexWhere((a) => a.id == id);
+      if (idx == -1) return;
+      _userEntries[idx] = updated;
+      notifyListeners();
+      await _save();
+    }
   }
 
   Future<void> delete(String id) async {
-    _userEntries.removeWhere((a) => a.id == id);
-    notifyListeners();
-    await _save();
+    try {
+      await FirebaseFirestore.instance.collection('anime').doc(id).delete();
+    } catch (e) {
+      debugPrint('[CatalogStore] delete() Firestore write error, fallback lokal: $e');
+      _userEntries.removeWhere((a) => a.id == id);
+      notifyListeners();
+      await _save();
+    }
   }
 
   bool isUserEntry(String id) => _userEntries.any((a) => a.id == id);

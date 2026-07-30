@@ -1,4 +1,4 @@
-package com.example.aniverse
+package my.aniverse.app
 
 import io.flutter.embedding.android.FlutterActivity
 
