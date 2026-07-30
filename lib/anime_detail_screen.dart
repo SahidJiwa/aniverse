@@ -5,6 +5,7 @@ import 'dart:html' as html;
 import 'anime_api_service.dart';
 import 'anime_model.dart';
 import 'app_theme.dart';
+import 'catalog_store.dart';
 import 'continue_watching_model.dart';
 import 'episode_model.dart';
 import 'mock_data_service.dart';
@@ -69,7 +70,14 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
   /// Fallback: automatically build genre-based recommendations from the local
   /// catalog when the API call (Jikan/AniList) fails or returns empty.
   static List<AnimeModel> _getSmartGenreRecommendations(AnimeModel target, {int maxCount = 8}) {
-    final all = MockDataService.getMockAnimes();
+    // Gabungkan CatalogStore (data Admin/Firestore — bisa berubah kapan
+    // saja) dengan MockDataService.getMockAnimes() (katalog hardcoded lama)
+    // supaya anime yang baru ditambahkan lewat Admin Panel juga ikut
+    // dipertimbangkan sebagai rekomendasi, bukan cuma daftar beku.
+    final all = _dedupeAnimeById([
+      ...CatalogStore.instance.getCustomCatalog(),
+      ...MockDataService.getMockAnimes(),
+    ]);
     final targetGenres = target.genres.map((g) => g.toLowerCase().trim()).toSet();
 
     final scored = <MapEntry<AnimeModel, int>>[];
@@ -94,18 +102,35 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
     return fallback.take(maxCount).toList();
   }
 
+  /// Dedupe by id (case/space-insensitive) — sama pola dengan CatalogStore,
+  /// dipakai saat menggabungkan dua sumber katalog supaya anime yang ada di
+  /// keduanya tidak muncul dobel.
+  static List<AnimeModel> _dedupeAnimeById(List<AnimeModel> entries) {
+    final seen = <String>{};
+    final result = <AnimeModel>[];
+    for (final a in entries) {
+      final key = a.id.trim().toLowerCase();
+      if (seen.add(key)) result.add(a);
+    }
+    return result;
+  }
+
   /// Tertiary voice actor fallback: look up the anime by title in the local
   /// MockDataService catalog. This ensures voice actors appear even for
   /// CatalogStore (Admin CMS) entries that don't carry voice actor metadata.
   static List<VoiceActorModel> _getLocalVoiceActors(AnimeModel target) {
     final titleKey = target.title.trim().toLowerCase();
-    for (final a in MockDataService.getMockAnimes()) {
+    final pool = _dedupeAnimeById([
+      ...CatalogStore.instance.getCustomCatalog(),
+      ...MockDataService.getMockAnimes(),
+    ]);
+    for (final a in pool) {
       if (a.title.trim().toLowerCase() == titleKey && a.voiceActors.isNotEmpty) {
         return a.voiceActors;
       }
     }
     // Partial match — e.g. "Sousou no Frieren Season 2" matches "Sousou no Frieren"
-    for (final a in MockDataService.getMockAnimes()) {
+    for (final a in pool) {
       if (a.voiceActors.isNotEmpty &&
           (titleKey.contains(a.title.trim().toLowerCase()) ||
            a.title.trim().toLowerCase().contains(titleKey))) {

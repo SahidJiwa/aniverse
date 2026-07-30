@@ -9,6 +9,7 @@ import 'anime_card.dart';
 import 'anime_detail_screen.dart';
 import 'anime_model.dart';
 import 'app_theme.dart';
+import 'catalog_store.dart';
 import 'continue_watching_model.dart';
 import 'mock_data_service.dart';
 import 'theme/aniverse_theme.dart';
@@ -32,6 +33,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
   bool _isRefreshing = false;
 
   AnimeModel? _resolveAnimeById(String id) {
+    // Katalog CatalogStore (data Admin/Firestore) adalah sumber utama —
+    // sebelumnya cuma cek MockDataService.getMockAnimes() (daftar hardcoded
+    // beku) sehingga anime yang ditambah/diedit lewat Admin Panel tidak
+    // pernah ketemu di sini.
+    for (final anime in CatalogStore.instance.getCustomCatalog()) {
+      if (anime.id == id) return anime;
+    }
     for (final anime in MockDataService.getMockAnimes()) {
       if (anime.id == id) return anime;
     }
@@ -807,8 +815,10 @@ class _ContinueHero extends StatelessWidget {
     final item = list.first;
     final active =
         MockDataService.getContinueWatchingByAnimeId(item.animeId) ?? item;
-    final anime =
-        resolver(active.animeId) ?? MockDataService.getMockAnimes().first;
+    final anime = resolver(active.animeId) ??
+        (CatalogStore.instance.getCustomCatalog().isNotEmpty
+            ? CatalogStore.instance.getCustomCatalog().first
+            : MockDataService.getMockAnimes().first);
     final progress = active.watchProgress.clamp(0.0, 1.0);
     final episodeIndex = anime.episodes.isEmpty
         ? 0

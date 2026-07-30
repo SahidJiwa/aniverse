@@ -198,9 +198,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     equippedBgId: _previewBgId ?? _equippedBgId,
                                     avatarBytes: _avatarBytes,
                                     isPreviewMode: _isPreviewMode,
-                                    miniXpRank: rank,
-                                    miniXpNextRank: nextRank,
-                                    miniXpProgress: progress,
                                   )
                                 : _ProfileHeaderSkeleton(shimmerCtrl: _shimmerCtrl),
                           ),
@@ -232,7 +229,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   onPreviewChanged: _onPreviewCosmetic,
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 28),
+                              // XP BAR
+                              _profileReady
+                                  ? _XpBar(xp: xp, rank: rank, nextRank: nextRank, progress: progress, shimmerCtrl: _shimmerCtrl)
+                                  : _XpBarSkeleton(shimmerCtrl: _shimmerCtrl),
+                              const SizedBox(height: 12),
                               // CURRENTLY VIBING
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -243,60 +245,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                               // ACTION BUTTONS
                               const _ActionButtons(),
                               const SizedBox(height: 28),
-                              // ACHIEVEMENT HALL + COLLECTION OVERVIEW — 2-column row
-                              IntrinsicHeight(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(left: 16),
-                                        child: const _AchievementHallPreview(maxBadges: 3),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(right: 16),
-                                        child: const _CollectionOverviewCard(),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              // ACHIEVEMENT HALL — badge preview row.
+                              // Placed right after Action Buttons (which has
+                              // the "Achievements"/"Badges" shortcuts) so the
+                              // achievement topic stays together instead of
+                              // being split by the Cosmetics section.
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: _AchievementHallPreview(),
                               ),
                               const SizedBox(height: 28),
-                              // DAILY PROGRESS + ANIME LIBRARY — 2-column row
-                              IntrinsicHeight(
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(left: 16),
-                                        child: _ActivityMissionCard(),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(right: 16),
-                                        child: _AnimeListTabs(),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              // AKTIVITAS & MISI (was: Season Challenge)
+                              const _ActivityMissionCard(),
                               const SizedBox(height: 28),
-                              // ANIME IDENTITY — combined radar/genre/alignment/personality
+                              // ANIME LIST TABS
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                                child: const _AnimeIdentityCard(),
+                                child: const _AnimeListTabs(),
                               ),
                               const SizedBox(height: 28),
                               // ── BENTO GRID ──────────────────────────────────
-                              // Favorite+WatchTime stack side by side; Recently
-                              // Watched gets a wider column than Koleksi Langka
-                              // (3:1) since its list needs more room.
+                              // Real staggered bento instead of repeated 2-col
+                              // rows: DNA/AI Roast/Share span the full width,
+                              // Favorite+WatchTime stack in the right column
+                              // next to DNA's height, Alignment/TasteMap sit
+                              // side by side, and Recently Watched gets a
+                              // wider column than Koleksi Langka (3:1 instead
+                              // of the old 3:2) since its list needs more room.
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: StaggeredGrid.count(
@@ -304,7 +279,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   mainAxisSpacing: 12,
                                   crossAxisSpacing: 12,
                                   children: [
-                                    // Row 1: Favorite (left) + Watch Time (right)
+                                    // Row 1: DNA Analysis — full width, tall
+                                    const StaggeredGridTile.count(
+                                      crossAxisCellCount: 4,
+                                      mainAxisCellCount: 2.5,
+                                      child: _AnimeDnaCard(),
+                                    ),
+                                    // Row 2: Favorite (left) + Watch Time (right)
                                     const StaggeredGridTile.count(
                                       crossAxisCellCount: 2,
                                       mainAxisCellCount: 2.1,
@@ -315,7 +296,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       mainAxisCellCount: 1.5,
                                       child: _WatchTimeCard(),
                                     ),
-                                    // Row 2: Recently Watched (wide) + Koleksi Langka (narrow)
+                                    // Row 3: Alignment + Taste Map, equal halves
+                                    const StaggeredGridTile.count(
+                                      crossAxisCellCount: 2,
+                                      mainAxisCellCount: 2.3,
+                                      child: _AlignmentCard(),
+                                    ),
+                                    const StaggeredGridTile.count(
+                                      crossAxisCellCount: 2,
+                                      mainAxisCellCount: 2.3,
+                                      child: _TasteMapCard(),
+                                    ),
+                                    // Row 4: Recently Watched (wide) + Koleksi Langka (narrow)
                                     StaggeredGridTile.count(
                                       crossAxisCellCount: 3,
                                       mainAxisCellCount: 2.4,
@@ -339,24 +331,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                               // (crossAxisCellCount was 4/4), so pulling them
                               // out doesn't affect any neighboring tile.
                               const SizedBox(height: 28),
-                              // WATCH JOURNEY + NEURAL ROASTER — 2-column row
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(left: 16),
-                                      child: const _WatchJourneyCard(),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 16),
-                                      child: const _AiRoastCard(),
-                                    ),
-                                  ),
-                                ],
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: _AiRoastCard(),
                               ),
                               const SizedBox(height: 16),
                               const Padding(
@@ -876,9 +853,6 @@ class _ProfileGlassHeader extends StatelessWidget {
   final String equippedFrameId, equippedDecoId, equippedBgId;
   final Uint8List? avatarBytes;
   final bool isPreviewMode;
-  final _Rank? miniXpRank;
-  final _Rank? miniXpNextRank;
-  final double? miniXpProgress;
 
   const _ProfileGlassHeader({
     required this.rankName, required this.xp,
@@ -886,7 +860,6 @@ class _ProfileGlassHeader extends StatelessWidget {
     this.decorCtrl, this.equippedFrameId = 'frame_none',
     this.equippedDecoId = 'none', this.equippedBgId = 'bg_default',
     this.avatarBytes, this.isPreviewMode = false,
-    this.miniXpRank, this.miniXpNextRank, this.miniXpProgress,
   });
 
   @override
@@ -944,16 +917,6 @@ class _ProfileGlassHeader extends StatelessWidget {
                 Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // FOUNDER pill — shown above the name for founding members
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [const Color(0xFFFF6B9D), const Color(0xFFFF6B9D).withOpacity(0.7)]),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text('FOUNDER', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w900, letterSpacing: 0.6)),
-                    ),
-                    const SizedBox(height: 4),
                     Row(children: [
                       ShaderMask(
                         shaderCallback: (b) => LinearGradient(
@@ -963,47 +926,21 @@ class _ProfileGlassHeader extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Icon(Icons.verified_rounded, color: AppTheme.primary, size: 16),
-                      const SizedBox(width: 4),
-                      _HeaderBadgeChip(
-                        icon: Icons.workspace_premium_rounded,
-                        color: const Color(0xFFFF6B9D),
-                        tooltip: 'Founder',
-                      ),
-                      const SizedBox(width: 4),
-                      _HeaderBadgeChip(
-                        icon: Icons.auto_awesome_rounded,
-                        color: const Color(0xFFFFB300),
-                        tooltip: 'Prestige',
-                      ),
                     ]),
-                    const SizedBox(height: 3),
-                    // Title row (Anime Emperor style — uses the rank name as the
-                    // player's earned title, with a small crown icon)
+                    const SizedBox(height: 2),
                     Row(children: [
-                      Icon(Icons.workspace_premium_rounded, color: AppTheme.highlight, size: 12),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(rankName, maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppTheme.highlight, fontSize: 12, fontWeight: FontWeight.w800)),
-                      ),
-                    ]),
-                    const SizedBox(height: 8),
-                    // Mini XP bar — nested right under the name, matching the
-                    // full _XpBar's data (rank/nextRank/progress) but compact.
-                    if (miniXpRank != null && miniXpProgress != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
-                        child: LinearProgressIndicator(
-                          value: miniXpProgress,
-                          minHeight: 5,
-                          backgroundColor: AppTheme.textPrimary.withOpacity(0.08),
-                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.highlight),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.highlight.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppTheme.highlight.withOpacity(0.30)),
                         ),
+                        child: Text(rankName, style: TextStyle(color: AppTheme.highlight, fontSize: 9, fontWeight: FontWeight.w800)),
                       ),
-                    if (miniXpRank != null && miniXpNextRank != null) ...[
-                      const SizedBox(height: 3),
-                      Text('$xp / ${miniXpNextRank!.minXP} XP', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w600)),
-                    ],
+                      const SizedBox(width: 6),
+                      Text('$xp XP', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.w600)),
+                    ]),
                   ],
                 )),
                 GestureDetector(
@@ -1048,34 +985,6 @@ class _ProfileGlassHeader extends StatelessWidget {
             ),
           ),
       ]),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// HEADER BADGE CHIP — small icon badges (Founder, Prestige) shown next to the
-// verified checkmark on the username row. Tapping shows the badge name as a
-// brief toast-style tooltip via the built-in Tooltip widget.
-// ═══════════════════════════════════════════════════════════════════════════
-class _HeaderBadgeChip extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String tooltip;
-  const _HeaderBadgeChip({required this.icon, required this.color, required this.tooltip});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        width: 20, height: 20,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(colors: [color, color.withOpacity(0.6)]),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 6, spreadRadius: 0.5)],
-        ),
-        child: Icon(icon, color: Colors.white, size: 12),
-      ),
     );
   }
 }
@@ -1226,8 +1135,7 @@ class _ProfileStatItem extends StatelessWidget {
 // or "Lihat Semua" opens the existing full _BadgesSheet — no new sheet here.
 // ═══════════════════════════════════════════════════════════════════════════
 class _AchievementHallPreview extends StatelessWidget {
-  final int maxBadges;
-  const _AchievementHallPreview({this.maxBadges = 6});
+  const _AchievementHallPreview();
 
   // Mirrors _BadgesSheet._badges — same order, same unlock states.
   static const _previewBadges = [
@@ -1291,7 +1199,6 @@ class _AchievementHallPreview extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: _previewBadges
-                .take(maxBadges)
                 .map((b) => Expanded(
                       child: GestureDetector(
                         onTap: () => _openBadgesSheet(context),
@@ -1424,14 +1331,14 @@ class _FrameConfig {
 }
 
 const Map<String, _FrameConfig> _frameConfigs = {
-  'frame_sakura':  _FrameConfig(assetPath: 'assets/border/Sakura Emperor.png',  glowColor: Color(0xFFFF6B9D), glowColorAlt: Color(0xFFFFB3D1), rotationSpeed: 0),
-  'frame_neon':    _FrameConfig(assetPath: 'assets/border/Cyberpunk Neon.png',  glowColor: Color(0xFF00FFCC), glowColorAlt: Color(0xFF0099FF), rotationSpeed: 0),
-  'frame_demon':   _FrameConfig(assetPath: 'assets/border/Demon Slayer.png',    glowColor: Color(0xFFFF3A1A), glowColorAlt: Color(0xFFFF8C00), rotationSpeed: 0),
-  'frame_dragon':  _FrameConfig(assetPath: 'assets/border/Dragon Flame.png',    glowColor: Color(0xFFFF5722), glowColorAlt: Color(0xFFFFD700), rotationSpeed: 0),
-  'frame_shrine':  _FrameConfig(assetPath: 'assets/border/Moonlit Shrine.png',  glowColor: Color(0xFF9B8BFF), glowColorAlt: Color(0xFF6A5ACD), rotationSpeed: 0),
-  'frame_nebula':  _FrameConfig(assetPath: 'assets/border/Cosmic Nebula.png',   glowColor: Color(0xFFE040FB), glowColorAlt: Color(0xFF7B1FA2), rotationSpeed: 0),
-  'frame_thunder': _FrameConfig(assetPath: 'assets/border/Thunder God.png',     glowColor: Color(0xFFFFEA00), glowColorAlt: Color(0xFF00B0FF), rotationSpeed: 0),
-  'frame_wraith':  _FrameConfig(assetPath: 'assets/border/Wraithling Cloak.png',glowColor: Color(0xFF7C4DFF), glowColorAlt: Color(0xFF311B92), rotationSpeed: 0),
+  'frame_sakura':  _FrameConfig(assetPath: 'assets/border/Sakura Emperor.png',  glowColor: Color(0xFFFF6B9D), glowColorAlt: Color(0xFFFFB3D1), rotationSpeed: 0.4),
+  'frame_neon':    _FrameConfig(assetPath: 'assets/border/Cyberpunk Neon.png',  glowColor: Color(0xFF00FFCC), glowColorAlt: Color(0xFF0099FF), rotationSpeed: 0.6),
+  'frame_demon':   _FrameConfig(assetPath: 'assets/border/Demon Slayer.png',    glowColor: Color(0xFFFF3A1A), glowColorAlt: Color(0xFFFF8C00), rotationSpeed: 0.3),
+  'frame_dragon':  _FrameConfig(assetPath: 'assets/border/Dragon Flame.png',    glowColor: Color(0xFFFF5722), glowColorAlt: Color(0xFFFFD700), rotationSpeed: 0.5),
+  'frame_shrine':  _FrameConfig(assetPath: 'assets/border/Moonlit Shrine.png',  glowColor: Color(0xFF9B8BFF), glowColorAlt: Color(0xFF6A5ACD), rotationSpeed: 0.2),
+  'frame_nebula':  _FrameConfig(assetPath: 'assets/border/Cosmic Nebula.png',   glowColor: Color(0xFFE040FB), glowColorAlt: Color(0xFF7B1FA2), rotationSpeed: 0.35),
+  'frame_thunder': _FrameConfig(assetPath: 'assets/border/Thunder God.png',     glowColor: Color(0xFFFFEA00), glowColorAlt: Color(0xFF00B0FF), rotationSpeed: 0.7),
+  'frame_wraith':  _FrameConfig(assetPath: 'assets/border/Wraithling Cloak.png',glowColor: Color(0xFF7C4DFF), glowColorAlt: Color(0xFF311B92), rotationSpeed: 0.25),
 };
 
 _FrameConfig _getFrameConfig(String frameId) =>
@@ -2542,6 +2449,25 @@ class _CurrentLoadoutCard extends StatefulWidget {
 }
 
 class _CurrentLoadoutCardState extends State<_CurrentLoadoutCard> {
+  late final PageController _pageCtrl;
+  double _page = 0;
+  static const int _perPage = 4;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageCtrl = PageController(viewportFraction: 1.0)
+      ..addListener(() {
+        setState(() => _page = _pageCtrl.page ?? 0);
+      });
+  }
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
+
   _CosmeticItem? _equippedItemFor(_LoadoutSlotDef slot) {
     String equippedId;
     List<_CosmeticItem> pool;
@@ -2563,6 +2489,7 @@ class _CurrentLoadoutCardState extends State<_CurrentLoadoutCard> {
 
   @override
   Widget build(BuildContext context) {
+    final pageCount = (_kLoadoutSlots.length / _perPage).ceil();
     return _Card(
       entranceDelay: const Duration(milliseconds: 100),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2572,21 +2499,47 @@ class _CurrentLoadoutCardState extends State<_CurrentLoadoutCard> {
           Text('Customize  ›', style: TextStyle(color: AppTheme.highlight, fontSize: 11, fontWeight: FontWeight.w800)),
         ]),
         const SizedBox(height: 14),
-        // All 7 slots shown at once in a single row — no carousel/paging,
-        // matching the reference layout. Tiles shrink slightly to fit.
-        Row(
-          children: [
-            for (final slot in _kLoadoutSlots)
-              Expanded(child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: _LoadoutSlotTile(
-                  slot: slot,
-                  item: _equippedItemFor(slot),
-                  isEquippedSlot: slot == _kLoadoutSlots.first,
-                ),
-              )),
-          ],
+        SizedBox(
+          height: 92,
+          child: PageView.builder(
+            controller: _pageCtrl,
+            itemCount: pageCount,
+            itemBuilder: (context, pageIndex) {
+              final start = pageIndex * _perPage;
+              final end = math.min(start + _perPage, _kLoadoutSlots.length);
+              final slots = _kLoadoutSlots.sublist(start, end);
+              return Row(
+                children: [
+                  for (final slot in slots)
+                    Expanded(child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _LoadoutSlotTile(
+                        slot: slot,
+                        item: _equippedItemFor(slot),
+                        isEquippedSlot: start == 0 && slot == _kLoadoutSlots.first,
+                      ),
+                    )),
+                ],
+              );
+            },
+          ),
         ),
+        if (pageCount > 1) ...[
+          const SizedBox(height: 10),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            for (int i = 0; i < pageCount; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: (_page.round() == i) ? 16 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: (_page.round() == i) ? AppTheme.highlight : AppTheme.textSecondary.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+          ]),
+        ],
       ]),
     );
   }
@@ -2601,26 +2554,21 @@ class _LoadoutSlotTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = item?.color ?? AppTheme.textSecondary;
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      AspectRatio(
-        aspectRatio: 1,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft, end: Alignment.bottomRight,
-              colors: [color.withOpacity(0.20), AppTheme.surface],
-            ),
-            border: Border.all(color: isEquippedSlot ? AppTheme.highlight : color.withOpacity(0.4), width: isEquippedSlot ? 1.6 : 1),
+    return Column(children: [
+      Container(
+        width: 56, height: 56,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
+            colors: [color.withOpacity(0.20), AppTheme.surface],
           ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Icon(item?.icon ?? slot.fallbackIcon, color: color, size: 18),
-          ),
+          border: Border.all(color: isEquippedSlot ? AppTheme.highlight : color.withOpacity(0.4), width: isEquippedSlot ? 1.6 : 1),
         ),
+        child: Icon(item?.icon ?? slot.fallbackIcon, color: color, size: 22),
       ),
-      const SizedBox(height: 4),
-      Text(slot.label, style: TextStyle(color: AppTheme.textSecondary, fontSize: 7.5, fontWeight: FontWeight.w700), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+      const SizedBox(height: 6),
+      Text(slot.label, style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w700), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
     ]);
   }
 }
@@ -2719,7 +2667,9 @@ class _ActivityMissionCardState extends State<_ActivityMissionCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -2879,7 +2829,8 @@ class _ActivityMissionCardState extends State<_ActivityMissionCard> {
             ],
           ),
         ),
-      );
+      ),
+    );
   }
 }
 class _ActivitySummaryStat extends StatelessWidget {
@@ -3963,9 +3914,9 @@ class _AnimeListTabsState extends State<_AnimeListTabs> {
                   Row(children: [
                     Text(a['ep'] as String, style: TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
                     const SizedBox(width: 6),
-                    Flexible(child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                      child: Text(a['genre'] as String, style: TextStyle(color: AppTheme.accent, fontSize: 8, fontWeight: FontWeight.w800), maxLines: 1, overflow: TextOverflow.ellipsis))),
+                      child: Text(a['genre'] as String, style: TextStyle(color: AppTheme.accent, fontSize: 8, fontWeight: FontWeight.w800))),
                   ]),
                   if (_tab == 0) ...[ const SizedBox(height: 4),
                     ClipRRect(borderRadius: BorderRadius.circular(4),
@@ -3998,243 +3949,6 @@ class _AnimeListTabsState extends State<_AnimeListTabs> {
 // ═══════════════════════════════════════════════════════════════════════════
 // ANIME DNA CARD
 // ═══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════
-// ANIME IDENTITY — combined radar chart + top genre + alignment + personality
-// ═══════════════════════════════════════════════════════════════════════════
-const _kPersonalityTags = [
-  {'label': 'Power Fantasy Lover',   'color': Color(0xFF4FC3F7)},
-  {'label': 'Dark Theme Enjoyer',    'color': Color(0xFF9B6BFF)},
-  {'label': 'Overpowered MC Lover',  'color': Color(0xFFFFC94D)},
-];
-
-// ═══════════════════════════════════════════════════════════════════════════
-// COLLECTION OVERVIEW — donut progress + per-category breakdown
-// Counts derived from _kAllCosmeticItems / _kAuraItems / _kNameColorItems /
-// _kTitleItems (owned vs total), not invented numbers.
-// ═══════════════════════════════════════════════════════════════════════════
-class _CollectionStat {
-  final String label;
-  final int owned;
-  final int total;
-  const _CollectionStat(this.label, this.owned, this.total);
-}
-
-List<_CollectionStat> _buildCollectionStats() {
-  int ownedOf(String type) => _kAllCosmeticItems.where((i) => i.type == type && i.owned).length;
-  int totalOf(String type) => _kAllCosmeticItems.where((i) => i.type == type).length;
-  int ownedList(List<_CosmeticItem> l) => l.where((i) => i.owned).length;
-  return [
-    _CollectionStat('Avatar Border', ownedOf('Avatar Border'), totalOf('Avatar Border')),
-    _CollectionStat('Profile Background', ownedOf('Profile BG'), totalOf('Profile BG')),
-    _CollectionStat('Profile Effect', ownedOf('Profile FX'), totalOf('Profile FX')),
-    _CollectionStat('Avatar Deco', ownedOf('Avatar Deco'), totalOf('Avatar Deco')),
-    _CollectionStat('Titles', ownedList(_kTitleItems), _kTitleItems.length),
-    _CollectionStat('Auras', ownedList(_kAuraItems), _kAuraItems.length),
-    _CollectionStat('Name Colors', ownedList(_kNameColorItems), _kNameColorItems.length),
-  ];
-}
-
-class _CollectionOverviewCard extends StatelessWidget {
-  const _CollectionOverviewCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final stats = _buildCollectionStats();
-    final ownedTotal = stats.fold<int>(0, (s, e) => s + e.owned);
-    final grandTotal = stats.fold<int>(0, (s, e) => s + e.total);
-    final pct = grandTotal == 0 ? 0.0 : ownedTotal / grandTotal;
-    return _Card(
-      entranceDelay: const Duration(milliseconds: 150),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(
-            child: Text('COLLECTION OVERVIEW', style: TextStyle(color: AppTheme.textPrimary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.3), maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 6),
-          Text('Detail ›', style: TextStyle(color: AppTheme.highlight, fontSize: 10, fontWeight: FontWeight.w800)),
-        ]),
-        const SizedBox(height: 14),
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            width: 76, height: 76,
-            child: Stack(alignment: Alignment.center, children: [
-              CustomPaint(size: const Size(76, 76), painter: _DonutPainter(progress: pct)),
-              Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('${(pct * 100).toInt()}%', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w900)),
-                Text('Collected', style: TextStyle(color: AppTheme.textSecondary, fontSize: 7.5, fontWeight: FontWeight.w700)),
-              ]),
-            ]),
-          ),
-          const SizedBox(width: 16),
-          Expanded(child: Column(children: [
-            for (final s in stats)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(children: [
-                  Expanded(child: Text(s.label, style: TextStyle(color: AppTheme.textSecondary, fontSize: 9.5, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 6),
-                  SizedBox(
-                    width: 46,
-                    child: ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(
-                      value: s.total == 0 ? 0 : s.owned / s.total, minHeight: 5,
-                      backgroundColor: AppTheme.textPrimary.withOpacity(0.06),
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.highlight),
-                    )),
-                  ),
-                  const SizedBox(width: 6),
-                  Text('${s.owned}/${s.total}', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w800)),
-                ]),
-              ),
-          ])),
-        ]),
-      ]),
-    );
-  }
-}
-
-class _DonutPainter extends CustomPainter {
-  final double progress;
-  const _DonutPainter({required this.progress});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 5;
-    final bgPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round
-      ..color = AppTheme.textPrimary.withOpacity(0.08);
-    canvas.drawCircle(center, radius, bgPaint);
-    final fgPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round
-      ..color = AppTheme.highlight;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      2 * math.pi * progress,
-      false,
-      fgPaint,
-    );
-  }
-  @override bool shouldRepaint(_DonutPainter old) => old.progress != progress;
-}
-
-class _AnimeIdentityCard extends StatefulWidget {
-  const _AnimeIdentityCard();
-  @override State<_AnimeIdentityCard> createState() => _AnimeIdentityCardState();
-}
-
-class _AnimeIdentityCardState extends State<_AnimeIdentityCard> {
-  int? _selectedGenreIdx;
-  final GlobalKey _canvasKey = GlobalKey();
-  static const double _radarSize = 140;
-
-  int? _hitTest(Offset local) {
-    const axes = 5;
-    final cx = _radarSize / 2, cy = _radarSize / 2;
-    final r = _radarSize / 2 - 4;
-    double minDist = double.infinity;
-    int? best;
-    for (int i = 0; i < axes; i++) {
-      final angle = -math.pi / 2 + i * 2 * math.pi / axes;
-      final pct = _kRadarGenres[i]['pct'] as double;
-      final px = cx + r * pct * math.cos(angle);
-      final py = cy + r * pct * math.sin(angle);
-      final d = (local - Offset(px, py)).distance;
-      if (d < 26 && d < minDist) { minDist = d; best = i; }
-    }
-    return best;
-  }
-
-  void _onTapDown(TapDownDetails details) {
-    final idx = _hitTest(details.localPosition);
-    setState(() => _selectedGenreIdx = idx);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      entranceDelay: const Duration(milliseconds: 300),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('ANIME IDENTITY', style: TextStyle(color: AppTheme.textPrimary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
-        const SizedBox(height: 14),
-        // ── Row 1: Radar chart + Top Genre list ──
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          GestureDetector(
-            key: _canvasKey,
-            onTapDown: _onTapDown,
-            child: CustomPaint(
-              size: const Size(140, 140),
-              painter: _RadarPainter(selectedIdx: _selectedGenreIdx),
-            ),
-          ),
-          const SizedBox(width: 18),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('TOP GENRE', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-            const SizedBox(height: 8),
-            ...List.generate(_kRadarGenres.length, (i) {
-              final g = _kRadarGenres[i];
-              final isSelected = _selectedGenreIdx == i;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(children: [
-                  Text('${i + 1}', style: TextStyle(color: isSelected ? AppTheme.highlight : AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.w900)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(g['label'] as String, style: TextStyle(color: isSelected ? AppTheme.highlight : AppTheme.textPrimary, fontSize: 11, fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 6),
-                  SizedBox(
-                    width: 60,
-                    child: ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(
-                      value: g['pct'] as double, minHeight: 5,
-                      backgroundColor: AppTheme.textPrimary.withOpacity(0.06),
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.highlight),
-                    )),
-                  ),
-                  const SizedBox(width: 6),
-                  Text('${((g['pct'] as double) * 100).toInt()}%', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w700)),
-                ]),
-              );
-            }),
-          ])),
-        ]),
-        const SizedBox(height: 18),
-        Divider(color: AppTheme.textPrimary.withOpacity(0.08), height: 1),
-        const SizedBox(height: 16),
-        // ── Row 2: Alignment + Personality ──
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('ALIGNMENT', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-            const SizedBox(height: 8),
-            Row(children: [
-              const Text('⚡', style: TextStyle(fontSize: 16)),
-              const SizedBox(width: 6),
-              Text('Chaotic Good', style: TextStyle(color: AppTheme.highlight, fontSize: 12, fontWeight: FontWeight.w900)),
-            ]),
-          ])),
-          Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('PERSONALITY', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final tag in _kPersonalityTags)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: (tag['color'] as Color).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: (tag['color'] as Color).withOpacity(0.35)),
-                  ),
-                  child: Text(tag['label'] as String, style: TextStyle(color: tag['color'] as Color, fontSize: 9.5, fontWeight: FontWeight.w800)),
-                ),
-            ]),
-          ])),
-        ]),
-      ]),
-    );
-  }
-}
-
 class _AnimeDnaCard extends StatelessWidget {
   const _AnimeDnaCard();
   @override
@@ -5211,125 +4925,7 @@ class _GenreChip extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// WATCH JOURNEY CARD (weekly bar chart)
-// ═══════════════════════════════════════════════════════════════════════════
-const _kWeeklyEpisodes = [
-  {'day': 'Sen', 'eps': 3},
-  {'day': 'Sel', 'eps': 5},
-  {'day': 'Rab', 'eps': 2},
-  {'day': 'Kam', 'eps': 6},
-  {'day': 'Jum', 'eps': 8},
-  {'day': 'Sab', 'eps': 12},
-  {'day': 'Min', 'eps': 9},
-];
-
-class _WatchJourneyCard extends StatelessWidget {
-  const _WatchJourneyCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final total = _kWeeklyEpisodes.fold<int>(0, (s, e) => s + (e['eps'] as int));
-    final peak = _kWeeklyEpisodes.reduce((a, b) => (a['eps'] as int) >= (b['eps'] as int) ? a : b);
-    final avg = total / _kWeeklyEpisodes.length;
-    return _Card(
-      entranceDelay: const Duration(milliseconds: 200),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(
-            child: Text('WATCH JOURNEY', style: TextStyle(color: AppTheme.textPrimary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.3), maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 6),
-          Text('7 hari', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9.5, fontWeight: FontWeight.w700)),
-        ]),
-        const SizedBox(height: 4),
-        Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-          Text('$total', style: TextStyle(color: AppTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900)),
-          const SizedBox(width: 4),
-          Text('episode', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.w700)),
-        ]),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 92,
-          child: CustomPaint(
-            size: const Size(double.infinity, 92),
-            painter: _WeeklyBarPainter(data: _kWeeklyEpisodes),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            for (final d in _kWeeklyEpisodes)
-              Expanded(
-                child: Text(
-                  d['day'] as String,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: (d['day'] == peak['day']) ? AppTheme.highlight : AppTheme.textSecondary,
-                    fontSize: 9,
-                    fontWeight: (d['day'] == peak['day']) ? FontWeight.w900 : FontWeight.w600,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(
-            child: Text('Peak: ${peak['day']} (${peak['eps']} eps)', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9.5, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 6),
-          Text('Avg ${avg.toStringAsFixed(1)}/hari', style: TextStyle(color: AppTheme.accent, fontSize: 9.5, fontWeight: FontWeight.w800)),
-        ]),
-      ]),
-    );
-  }
-}
-
-class _WeeklyBarPainter extends CustomPainter {
-  final List<Map<String, Object>> data;
-  const _WeeklyBarPainter({required this.data});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final maxEps = data.map((e) => e['eps'] as int).reduce(math.max).toDouble();
-    final barCount = data.length;
-    final gap = 8.0;
-    final barWidth = (size.width - gap * (barCount - 1)) / barCount;
-
-    for (var i = 0; i < barCount; i++) {
-      final eps = (data[i]['eps'] as int).toDouble();
-      final h = maxEps == 0 ? 4.0 : math.max(4.0, (eps / maxEps) * size.height);
-      final left = i * (barWidth + gap);
-      final rect = Rect.fromLTWH(left, size.height - h, barWidth, h);
-      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(5));
-      final isPeak = eps == maxEps;
-      final paint = Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: isPeak
-              ? [AppTheme.highlight, AppTheme.accent]
-              : [AppTheme.textPrimary.withOpacity(0.18), AppTheme.textPrimary.withOpacity(0.08)],
-        ).createShader(rect);
-      canvas.drawRRect(rrect, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_WeeklyBarPainter old) => old.data != data;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // AI ROAST CARD (Neural Terminal Aesthetic V3)
-// ═══════════════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════════════
-// NEURAL ROASTER — Anime Compatibility & Personality Insight
-// Rebuilt from a full-terminal roast generator into a structured insight
-// card: Anime Personality (reuses _kPersonalityTags from Anime Identity so
-// the two cards never disagree), a Compatibility score, a short one-line
-// AI Roast (kept, but condensed — no more typewriter terminal), and a
-// locked Secret Achievement teaser.
 // ═══════════════════════════════════════════════════════════════════════════
 class _AiRoastCard extends StatefulWidget {
   const _AiRoastCard();
@@ -5338,151 +4934,344 @@ class _AiRoastCard extends StatefulWidget {
   State<_AiRoastCard> createState() => _AiRoastCardState();
 }
 
-class _AiRoastCardState extends State<_AiRoastCard> with SingleTickerProviderStateMixin {
+class _AiRoastCardState extends State<_AiRoastCard> with TickerProviderStateMixin {
+  bool _isLoading = false;
+  bool _roasted = false;
+  late AnimationController _scannerCtrl;
   late AnimationController _pulseCtrl;
+  
+  // Console output log
+  final List<String> _terminalLines = [];
+  int _currentLineIndex = 0;
+  String _typedText = "";
+  int _charIndex = 0;
+  
+  int _roastIndex = 0;
 
   static const _roastPool = [
-    "Nonton Demon Slayer sama Solo Leveling mulu biar ngerasa overpower 😤",
-    "68% genre Action — otomatis skip ke fight scene ya?",
-    "323 anime ditonton tapi masih rank Newbie? Itu bukan humble.",
-    "14.280 jam nonton = 595 hari. Touch grass priority: EXTREME.",
-    "7 cosmetic di vault, cuma 1 yang di-equip. Itu hoarding, bukan flex.",
-    "Psychological cuma 9% — takut anime yang butuh mikir, ya?",
+    "🤖 [SYSTEM_ROAST] >> Lu nonton Demon Slayer sama Solo Leveling mulu biar ngerasa overpower, padahal kehidupan nyata lu cuma dapet rating IMDb 3.2. Cobalah sesekali bersosialisasi sama NPC di dunia nyata!",
+    "🤖 [SYSTEM_ROAST] >> 14.280 jam nonton? Itu setara 595 hari. Artinya hampir 2 tahun hidup lu cuma liat orang lain dapat character development, sementara arc lu sendiri masih stuck di 'Bangun-Scroll-Tidur'.",
+    "🤖 [SYSTEM_ROAST] >> 68% genre Action — lu bukan anime enjoyer, lu otomatis nge-skip ke fight scene. Buka slice-of-life sekali kali, biar tau ada kehidupan selain ngeluarin ultimate move.",
+    "🤖 [SYSTEM_ROAST] >> 323 anime ditonton tapi rating rata-rata 8.4? Lu rating-nya lebih murah hati dari user MAL. Setiap anime dapet 8, termasuk filler arc yang harusnya masuk tempat sampah.",
+    "🤖 [SYSTEM_ROAST] >> Watch party 0/1? Jadi lu nonton sendirian 14 ribu jam tapi nggak bisa jadwalin satu sesi bareng temen. Mungkin temennya yang nggak ada, atau mungkin animenya yang jadi temen lu.",
+    "🤖 [SYSTEM_ROAST] >> TOP 0.5% watch time global — selamat, lu berhasil beat 99.5% populasi dalam hal paling nggak produktif di alam semesta. Kalau ini Olimpiade, lu dapet medali emas kategori Skill Issue.",
+    "🤖 [SYSTEM_ROAST] >> Lu koleksi 7 cosmetic di vault tapi yang di-equip cuma satu. Itu bukan flex, itu hoarding. KonMari method: kalau cosmeticnya nggak spark joy, unequip aja semuanya termasuk self-esteem.",
+    "🤖 [SYSTEM_ROAST] >> Psychological genre cuma 9%? Jadi lu takut anime yang butuh mikir? Aman, tetap di zona nyaman Action — nggak ada consequences, nggak ada moral dilemma, sama kayak hidup lu.",
+    "🤖 [SYSTEM_ROAST] >> Newbie Nyasar rank dengan 0 XP? Lu udah nonton 323 anime tapi masih 'Newbie'. Itu bukan humble, itu sistem yang tau persis lo belum buka aplikasi ini dengan serius.",
+    "🤖 [SYSTEM_ROAST] >> 247 anime completed tapi 58 masih di Plan to Watch — statistiknya jelas: lu lebih jago janji sama diri sendiri daripada nepatin. Isekai real life lu: dunia di mana todo list terus bertambah.",
+    "🤖 [SYSTEM_ROAST] >> Season Challenge progress 1/3 — lu udah halfway ke nowhere. Watch party masih 0/1 karena nggak ada yang mau nemenin marathon 8 jam nonstop sambil lu nggak pause buat ngobrol.",
+    "🤖 [SYSTEM_ROAST] >> Vault cosmetic 'Wraithling Cloak' dipakai 810 orang lain. Lu pikir itu rare? Itu lebih umum dari common sense yang apparently juga jarang lu temuin.",
   ];
-  int _roastIndex = 0;
+
+  List<String> get _rawTerminalScript => [
+    "⚡ [SYS_INIT] >> Establishing link to AniVerse AI Core...",
+    "⚡ [STAT_ANALYSIS] >> Parsing 323 watched titles & DNA markers...",
+    "⚡ [STAT_ANALYSIS] >> Warning: Critical Action-Shonen saturation (68%)!",
+    "⚡ [STAT_ANALYSIS] >> Watch time: 14.280 hours (Touch grass priority: EXTREME)",
+    _roastPool[_roastIndex % _roastPool.length],
+  ];
 
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))
-      ..repeat(reverse: true);
+    _scannerCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
+    _scannerCtrl.dispose();
     _pulseCtrl.dispose();
     super.dispose();
   }
 
+  void _startRoast() {
+    setState(() {
+      _isLoading = true;
+      _roasted = false;
+      _terminalLines.clear();
+      _currentLineIndex = 0;
+      _typedText = "";
+      _charIndex = 0;
+    });
+
+    _scannerCtrl.repeat();
+
+    // Simulate scanning/loading for 2.5 seconds
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (!mounted) return;
+      _scannerCtrl.stop();
+      setState(() {
+        _isLoading = false;
+        _roasted = true;
+      });
+      _nextTerminalLine();
+    });
+  }
+
+
   void _refreshRoast() {
-    setState(() => _roastIndex = (_roastIndex + 1) % _roastPool.length);
+    setState(() {
+      _roastIndex = (_roastIndex + 1) % _roastPool.length;
+    });
+    _startRoast();
+  }
+
+  void _nextTerminalLine() {
+    if (_currentLineIndex >= _rawTerminalScript.length) return;
+    final line = _rawTerminalScript[_currentLineIndex];
+    _charIndex = 0;
+    _typedText = "";
+    
+    // Typewriter effect interval
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(milliseconds: 15));
+      if (!mounted) return false;
+      setState(() {
+        _typedText += line[_charIndex];
+        _charIndex++;
+      });
+      return _charIndex < line.length;
+    }).then((_) {
+      if (!mounted) return;
+      setState(() {
+        _terminalLines.add(_typedText);
+        _currentLineIndex++;
+      });
+      // Pause slightly between lines
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        _nextTerminalLine();
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final personality = _kPersonalityTags.first;
     return _Card(
       entranceDelay: const Duration(milliseconds: 500),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          // Header
-          Row(children: [
-            AnimatedBuilder(
-              animation: _pulseCtrl,
-              builder: (_, __) => Container(
-                width: 28, height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: [AppTheme.highlight, AppTheme.accent]),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.highlight.withOpacity(0.35 + _pulseCtrl.value * 0.25),
-                      blurRadius: 10 + _pulseCtrl.value * 6,
-                      spreadRadius: 1,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.accent.withOpacity(0.35)),
                     ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('🤖', style: TextStyle(fontSize: 10)),
+                        const SizedBox(width: 5),
+                        Text('NEURAL ROASTER V3',
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            )),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  AnimatedBuilder(
+                    animation: _pulseCtrl,
+                    builder: (_, __) => Container(
+                      width: 8, height: 8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isLoading ? const Color(0xFF00FFCC) : (_roasted ? AppTheme.highlight : AppTheme.textSecondary),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (_isLoading ? const Color(0xFF00FFCC) : (_roasted ? AppTheme.highlight : AppTheme.textSecondary))
+                                .withOpacity(_pulseCtrl.value * 0.6),
+                            blurRadius: 6,
+                            spreadRadius: 2,
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Terminal screen
+              Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(minHeight: 140),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.textPrimary.withOpacity(0.15)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!_isLoading && !_roasted) ...[
+                      const Text(
+                        "⚡ [SYS_READY] >> Awaiting diagnostic directive...",
+                        style: TextStyle(
+                          color: Color(0xFF00FFCC),
+                          fontFamily: 'monospace',
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Click 'SCAN PROFILE' to run a neural diagnostics and let the AI compile a personalized roast card.",
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ] else if (_isLoading) ...[
+                      const Text(
+                        "⚡ [SYS_SCANNING] >> Analyzing database collections...\n⚡ [SYS_SCANNING] >> Recalculating watch index stats...\n⚡ [SYS_SCANNING] >> Running glitched avatar stack diagnostics...",
+                        style: TextStyle(
+                          color: Color(0xFFFFB300),
+                          fontFamily: 'monospace',
+                          fontSize: 10.5,
+                          height: 1.5,
+                        ),
+                      ),
+                    ] else ...[
+                      // Typewriter console log
+                      ..._terminalLines.map((line) => _buildTerminalLine(line)),
+                      // Currently typing line
+                      if (_currentLineIndex < _rawTerminalScript.length && _typedText.isNotEmpty)
+                        _buildTerminalLine(_typedText, isTyping: true),
+                    ],
                   ],
                 ),
-                child: const Icon(Icons.psychology_alt_rounded, color: Colors.white, size: 16),
+              ),
+              const SizedBox(height: 12),
+              
+              // Trigger Button
+              if (!_isLoading)
+                Row(children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _startRoast,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [AppTheme.highlight, AppTheme.accent]),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: AppTheme.highlight.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                        ),
+                        child: Text(
+                          _roasted ? 'RE-SCAN' : 'SCAN PROFILE',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_roasted) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _refreshRoast,
+                      child: Container(
+                        width: 42, height: 42,
+                        decoration: BoxDecoration(
+                          color: AppTheme.accent.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.accent.withOpacity(0.35)),
+                        ),
+                        child: const Icon(Icons.refresh_rounded, color: AppTheme.accent, size: 20),
+                      ),
+                    ),
+                  ],
+                ])
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textPrimary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.textPrimary.withOpacity(0.12)),
+                  ),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00FFCC)),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          
+          // Scanner sweep overlay
+          if (_isLoading)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _scannerCtrl,
+                  builder: (_, __) => CustomPaint(
+                    painter: _ScannerSweepPainter(value: _scannerCtrl.value),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('NEURAL ROASTER', maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: AppTheme.textPrimary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-            ),
-            Text('Detail ›', style: TextStyle(color: AppTheme.highlight, fontSize: 10, fontWeight: FontWeight.w800)),
-          ]),
-          const SizedBox(height: 14),
-          // Anime Personality
-          _RoasterInsightRow(
-            icon: Icons.auto_awesome_rounded,
-            iconColor: personality['color'] as Color,
-            label: 'Anime Personality',
-            value: personality['label'] as String,
-          ),
-          const SizedBox(height: 10),
-          // Compatibility
-          _RoasterInsightRow(
-            icon: Icons.favorite_rounded,
-            iconColor: const Color(0xFFFF6B9D),
-            label: 'Compatibility',
-            value: '97% cocok denganmu',
-          ),
-          const SizedBox(height: 10),
-          // AI Roast — condensed one-liner, tap to refresh
-          GestureDetector(
-            onTap: _refreshRoast,
-            child: _RoasterInsightRow(
-              icon: Icons.bolt_rounded,
-              iconColor: const Color(0xFFFFB300),
-              label: 'AI Roast',
-              value: _roastPool[_roastIndex],
-              valueMaxLines: 2,
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Secret Achievement — locked teaser
-          _RoasterInsightRow(
-            icon: Icons.lock_rounded,
-            iconColor: AppTheme.textSecondary,
-            label: 'Secret Achievement',
-            value: 'Hidden piece finder',
-            dimmed: true,
-          ),
         ],
       ),
     );
   }
-}
 
-// Single insight row used inside Neural Roaster — icon chip, label, value.
-class _RoasterInsightRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-  final int valueMaxLines;
-  final bool dimmed;
-  const _RoasterInsightRow({
-    required this.icon, required this.iconColor, required this.label, required this.value,
-    this.valueMaxLines = 1, this.dimmed = false,
-  });
+  Widget _buildTerminalLine(String line, {bool isTyping = false}) {
+    Color labelColor = const Color(0xFF00FFCC);
+    Color contentColor = AppTheme.textPrimary;
+    
+    if (line.contains("[SYSTEM_ROAST]")) {
+      labelColor = AppTheme.highlight;
+      contentColor = const Color(0xFFFF80AB);
+    } else if (line.contains("[STAT_ANALYSIS]")) {
+      labelColor = const Color(0xFF00E5FF);
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    final opacity = dimmed ? 0.55 : 1.0;
-    return Opacity(
-      opacity: opacity,
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          width: 22, height: 22,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: iconColor.withOpacity(0.15),
+    // Split at " >> "
+    final parts = line.split(" >> ");
+    final label = parts.isNotEmpty ? parts[0] + " >> " : "";
+    final content = parts.length > 1 ? parts[1] : "";
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(
+            fontFamily: 'monospace',
+            fontSize: 10.5,
+            height: 1.4,
           ),
-          child: Icon(icon, color: iconColor, size: 12),
+          children: [
+            TextSpan(text: label, style: TextStyle(color: labelColor, fontWeight: FontWeight.bold)),
+            TextSpan(text: content, style: TextStyle(color: contentColor)),
+            if (isTyping)
+              const WidgetSpan(
+                child: _BlinkingCursor(),
+              ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(label, style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 1),
-            Text(value, maxLines: valueMaxLines, overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 11.5, fontWeight: FontWeight.w800)),
-          ]),
-        ),
-      ]),
+      ),
     );
   }
 }
