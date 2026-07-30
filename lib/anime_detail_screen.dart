@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'anime_api_service.dart';
 import 'anime_model.dart';
 import 'app_theme.dart';
