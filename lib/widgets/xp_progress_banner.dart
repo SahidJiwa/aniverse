@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../anime_api_service.dart';
-import '../app_theme.dart';
+
 
 class XpProgressBanner extends StatefulWidget {
   final bool moodRadarUsed;
