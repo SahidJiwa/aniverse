@@ -19,6 +19,13 @@ jobs:
           channel: 'stable'
           cache: true
 
+      # SPM integration for iOS plugins (e.g. cloud_firestore) hits a
+      # rsync/mkdir race condition on macOS CI runners — the SourcePackages
+      # folder isn't created in time before the copy starts. Falling back
+      # to CocoaPods (the long-standing, CI-proven path) avoids it entirely.
+      - name: Disable Swift Package Manager (avoid SPM rsync race on CI)
+        run: flutter config --no-enable-swift-package-manager
+
       - name: Install Dependencies
         run: |
           flutter precache --ios
