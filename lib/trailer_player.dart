@@ -2,13 +2,12 @@
 //
 // Web: wraps the YouTube-embed platform view (youtube_trailer_web.dart /
 // youtube_trailer_stub.dart, mirroring watch_screen.dart's existing
-// video_element_web.dart / video_element_stub.dart split).
+// videoElementWeb / videoElementStub split).
 // Native (Android/iOS): youtube_player_flutter's WebView-backed player,
-// since dart:html/HtmlElementView don't exist outside Flutter Web — that's
-// why the trailer never played on the Android build even though it worked
-// fine on web.
+// since dart:html/HtmlElementView don't exist outside Flutter Web.
 // Both paths share the URL -> video-ID extraction below.
 
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -58,6 +57,12 @@ String? extractYoutubeId(String url) {
 ///   - running on a non-web platform (no iframe platform views there —
 ///     see youtube_trailer_stub.dart).
 ///
+/// Starts muted (browsers block unmuted autoplay without a user gesture),
+/// then auto-unmutes on the viewer's first interaction anywhere on the page
+/// via [armAutoUnmute] — no visible control, no extra tap. YouTube's own
+/// chrome (title, logo) is masked by the caller's scrim + a bottom crop, and
+/// its auto-translate subtitles are disabled via [disableYoutubeCaptions].
+///
 /// Usage:
 ///   TrailerPlayer(
 ///     trailerUrl: getTrailerUrl(anime.title),
@@ -68,10 +73,12 @@ class TrailerPlayer extends StatefulWidget {
     super.key,
     required this.trailerUrl,
     required this.fallback,
+    this.playWithSound = false,
   });
 
   final String? trailerUrl;
   final Widget fallback;
+  final bool playWithSound;
 
   @override
   State<TrailerPlayer> createState() => _TrailerPlayerState();
@@ -81,10 +88,14 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
   String? _viewId;
   bool _registered = false;
   YoutubePlayerController? _nativeController;
+  bool _muted = true;
+  // Ensures the first-gesture auto-unmute listener is armed only once.
+  bool _autoUnmuteArmed = false;
 
   @override
   void initState() {
     super.initState();
+    _muted = !widget.playWithSound;
     _setUpIfNeeded();
   }
 
@@ -92,45 +103,56 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
   void didUpdateWidget(covariant TrailerPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.trailerUrl != widget.trailerUrl) {
+      if (_viewId != null) disposeYoutubeTrailer(_viewId!);
       _registered = false;
       _viewId = null;
       _nativeController?.dispose();
       _nativeController = null;
+      _muted = !widget.playWithSound;
+      _autoUnmuteArmed = false;
       _setUpIfNeeded();
     }
   }
 
   @override
   void dispose() {
+    if (_viewId != null) disposeYoutubeTrailer(_viewId!);
     _nativeController?.dispose();
     super.dispose();
   }
 
-  void _setUpIfNeeded() {
+  /// Registers the trailer platform view (web) or builds the native
+  /// controller. The web viewId is unique per (video, mount, mute-state) so
+  /// re-entering for a different anime — or re-registering after a hot
+  /// reload / unmute toggle — doesn't collide with a prior view.
+  void _setUpIfNeeded({bool? muted}) {
     final url = widget.trailerUrl;
     if (url == null || url.isEmpty) return;
     final videoId = extractYoutubeId(url);
     if (videoId == null) return;
 
+    final wantMuted = muted ?? !widget.playWithSound;
+
     if (kIsWeb) {
-      // Unique per (video, mount) so re-entering this screen for a
-      // different anime — or re-registering after a hot reload — doesn't
-      // collide with a previously-registered view of the same id.
       final viewId =
-          'yt_trailer_${videoId}_${DateTime.now().millisecondsSinceEpoch}';
-      registerYoutubeTrailerElement(videoId, viewId);
+          'yt_trailer_${videoId}_${wantMuted ? 'm' : 's'}_${DateTime.now().millisecondsSinceEpoch}';
+      registerYoutubeTrailerElement(videoId, viewId, muted: wantMuted);
+      // Kill YouTube's auto-translate subtitles (URL params can't).
+      disableYoutubeCaptions(viewId);
       _viewId = viewId;
       _registered = true;
+      if (!_autoUnmuteArmed) {
+        _autoUnmuteArmed = true;
+        armAutoUnmute(_autoUnmute);
+      }
     } else {
       // Native (Android/iOS): youtube_player_flutter drives an actual
-      // WebView under the hood, so autoplay/mute/loop are controller
-      // flags instead of query-string params the way the web iframe
-      // does it in youtube_trailer_web.dart.
+      // WebView under the hood; autoplay/mute/loop are controller flags.
       _nativeController = YoutubePlayerController(
         initialVideoId: videoId,
-        flags: const YoutubePlayerFlags(
+        flags: YoutubePlayerFlags(
           autoPlay: true,
-          mute: true,
+          mute: !widget.playWithSound,
           loop: true,
           hideControls: true,
           disableDragSeek: true,
@@ -143,49 +165,104 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
     }
   }
 
+  /// Called by the web helper [armAutoUnmute] on the user's first
+  /// interaction anywhere on the page. A real gesture is exactly what
+  /// browsers require to permit unmuted autoplay, so we reload the embed
+  /// (gesture-initiated) with sound on — no visible tap needed.
+  void _autoUnmute() {
+    if (!_muted) return;
+    _muted = false;
+    if (_viewId != null) disposeYoutubeTrailer(_viewId!);
+    _setUpIfNeeded(muted: false);
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!_registered) {
-      return widget.fallback;
-    }
-    if (kIsWeb) {
-      if (_viewId == null) return widget.fallback;
-      return ClipRect(
-        child: Transform.scale(
-          scale: 1.35,
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: 1920,
-              height: 1080,
-              child: IgnorePointer(
-                child: HtmlElementView(viewType: _viewId!),
+    if (!_registered) return widget.fallback;
+    final player = kIsWeb ? _webPlayer() : _nativePlayer();
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        player,
+        // Top scrim masks YouTube's persistent title overlay — controls=0
+        // alone doesn't suppress it — without touching the Flutter back
+        // button drawn above this layer.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 96,
+          child: IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.0, 0.5, 1.0],
+                  colors: [
+                    Colors.black.withValues(alpha: 0.9),
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      );
-    }
-    if (_nativeController == null) return widget.fallback;
-    return ClipRect(
-      child: Transform.scale(
-        scale: 1.08,
+      ],
+    );
+  }
+
+  Widget _webPlayer() => ClipRect(
         child: FittedBox(
           fit: BoxFit.contain,
           child: SizedBox(
             width: 1920,
             height: 1080,
-            child: IgnorePointer(
-              child: YoutubePlayer(
-                controller: _nativeController!,
-                showVideoProgressIndicator: false,
-                bottomActions: const [],
-                topActions: const [],
+            child: Stack(
+              children: [
+                // Render the iframe taller than the visible box and pin it to
+                // the top, so YouTube's logo (painted at the iframe's bottom
+                // edge) falls outside the clip — controls=0 alone doesn't hide
+                // it. The small top letterbox this creates sits under the top
+                // scrim above.
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  height: 1080 + 72,
+                  child: IgnorePointer(
+                    child: HtmlElementView(
+                      viewType: _viewId!,
+                      key: ValueKey<String>(_viewId!),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _nativePlayer() => ClipRect(
+        child: Transform.scale(
+          scale: 1.08,
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: 1920,
+              height: 1080,
+              child: IgnorePointer(
+                child: YoutubePlayer(
+                  controller: _nativeController!,
+                  showVideoProgressIndicator: false,
+                  bottomActions: const [],
+                  topActions: const [],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }

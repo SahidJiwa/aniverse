@@ -164,15 +164,15 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
     // of leaving the FutureBuilder stuck on ConnectionState.waiting forever
     // (which is what caused the perpetual spinner under Recommendations).
     _detailFuture = AnimeApiService.fetchAnimeDetail(widget.anime.id)
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 12));
     _episodesFuture = AnimeApiService.fetchAnimeEpisodes(widget.anime.id)
-        .timeout(const Duration(seconds: 45));
+        .timeout(const Duration(seconds: 12));
     _recommendationsFuture =
         AnimeApiService.fetchAnimeRecommendations(widget.anime.id, title: widget.anime.title)
-            .timeout(const Duration(seconds: 45));
+            .timeout(const Duration(seconds: 12));
     _voiceActorsFuture =
         AnimeApiService.fetchAnimeVoiceActors(widget.anime.id, title: widget.anime.title)
-            .timeout(const Duration(seconds: 45));
+            .timeout(const Duration(seconds: 12));
 
     // Only run the shrink/reveal sequence if this anime actually has a
     // trailer registered — otherwise there'd be nothing behind the poster
@@ -205,11 +205,12 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
     return FutureBuilder<JikanAnimeDetail>(
       future: _detailFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+        // Don't block the whole screen on the API call — show local data
+        // instantly and let live data replace it when it arrives (or the
+        // Offline banner appear if the call fails). This is what makes the
+        // detail screen feel instant instead of spinning for up to ~12s
+        // when the API is slow/unreachable.
+        final bool isLoading = snapshot.connectionState == ConnectionState.waiting;
 
         // ── Custom catalog entry vs Api failure ──────────────────────────
         final JikanAnimeDetail detail;
@@ -224,6 +225,22 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
             status: widget.anime.status.isNotEmpty ? widget.anime.status : 'Ongoing',
             genres: widget.anime.genres,
             studios: const ['AniVerse Original'],
+            largeImageUrl: widget.anime.imageUrl,
+            trailerYoutubeId: null,
+            relations: const [],
+          );
+          isOffline = false;
+        } else if (isLoading) {
+          // Still fetching — render local data now, no full-screen spinner.
+          detail = JikanAnimeDetail(
+            title: widget.anime.title,
+            synopsis: widget.anime.description,
+            score: widget.anime.rating,
+            rank: null,
+            episodes: widget.anime.episodes.isEmpty ? null : widget.anime.episodes.length,
+            status: 'N/A',
+            genres: widget.anime.genres,
+            studios: const [],
             largeImageUrl: widget.anime.imageUrl,
             trailerYoutubeId: null,
             relations: const [],
@@ -249,6 +266,14 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
           isOffline = false;
         }
 
+        // Local data is "complete" when the key fields the API would enrich
+        // are already present — if so, an offline/API failure is harmless
+        // (we're just showing the same curated data the user entered), so
+        // the Offline banner becomes noise and we suppress it.
+        final bool localDataComplete = widget.anime.description.trim().isNotEmpty &&
+            widget.anime.genres.isNotEmpty &&
+            widget.anime.episodes.isNotEmpty;
+
         final displayGenre =
             detail.genres.isEmpty ? widget.anime.genre : detail.genres.first;
         final displayEpisodes = detail.episodes ?? widget.anime.episodes.length;
@@ -268,25 +293,36 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                 pinned: true,
                 stretch: true,
                 backgroundColor: AppTheme.background,
+                leadingWidth: 56,
                 leading: Padding(
                   padding: const EdgeInsets.only(left: 8),
-                  child: LiquidGlassPill(
-                    borderRadius: 24,
-                    compact: true,
-                    padding: EdgeInsets.zero,
-                    alignment: Alignment.center,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        center: const Alignment(-0.6, -0.8),
+                        radius: 1.4,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.10),
+                          Colors.black.withValues(alpha: 0.45),
+                        ],
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_rounded,
-                          color: Colors.white),
+                          color: Colors.white, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints.tight(const Size(40, 40)),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
                 ),
-                actions: [
-                  _FavoriteButton(anime: widget.anime),
-                  _WatchlistButton(anime: widget.anime),
-                  const SizedBox(width: 4),
-                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Hero(
                     tag: 'anime-hero-${widget.anime.id}',
@@ -321,6 +357,37 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                         final trailerUrl = getTrailerUrl(widget.anime.title, anime: widget.anime);
 
                         Widget buildPosterLayer() {
+                          final posterUrl = detail.largeImageUrl.isNotEmpty
+                              ? detail.largeImageUrl
+                              : widget.anime.imageUrl;
+                          final bool hasPoster = posterUrl.isNotEmpty;
+                          final Widget placeholder = Container(
+                            width: double.infinity,
+                            height: double.infinity,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [AppTheme.surface, AppTheme.background],
+                              ),
+                            ),
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  widget.anime.title,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          );
                           return ShaderMask(
                             shaderCallback: (rect) {
                               return LinearGradient(
@@ -347,14 +414,21 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                                   child: child,
                                 );
                               },
-                              child: ProxiedNetworkImage.forUrl(
-                                url: detail.largeImageUrl.isNotEmpty
-                                    ? detail.largeImageUrl
-                                    : widget.anime.imageUrl,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
+                              child: hasPoster
+                                  ? Stack(
+                                      children: [
+                                        Positioned.fill(child: placeholder),
+                                        Positioned.fill(
+                                          child: ProxiedNetworkImage.forUrl(
+                                            url: posterUrl,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : placeholder,
                             ),
                           );
                         }
@@ -364,17 +438,25 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                         // Burns drift, nothing extra).
                         if (trailerUrl == null) return buildPosterLayer();
 
+                        // Trailer mulai muted-autoplay (biar PASTI main — browser
+                        // blokir autoplay ber-suara tanpa gesture). Widget
+                        // TrailerPlayer kasih tombol speaker di kanan-atas untuk
+                        // nyalain suara (tap = user gesture → browser izinin).
                         return Stack(
                           fit: StackFit.expand,
                           children: [
-                            FadeTransition(
-                              opacity: ReverseAnimation(_trailerOpacity),
-                              child: buildPosterLayer(),
-                            ),
+                            buildPosterLayer(),
                             FadeTransition(
                               opacity: _trailerOpacity,
                               child: TrailerPlayer(
                                 trailerUrl: trailerUrl,
+                                // Muted autoplay: browsers only allow autoplay
+                                // without a fresh user gesture when the video
+                                // is muted. playWithSound:true sets mute=0, which
+                                // Chrome/Edge/Safari block — so the trailer never
+                                // started on its own. Muted background autoplay is
+                                // the reliable path (matches youtube_trailer_web.dart).
+                                playWithSound: false,
                                 fallback: buildPosterLayer(),
                               ),
                             ),
@@ -386,7 +468,10 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                 ),
               ),
               // ── Offline banner ─────────────────────────────────────────
-              if (isOffline)
+              // Only warn when the API failure actually costs us data — i.e.
+              // when the locally-curated entry is missing key fields. If the
+              // user's manual data is complete, hide the banner (no noise).
+              if (isOffline && !localDataComplete)
                 SliverToBoxAdapter(
                   child: Container(
                     margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -418,16 +503,16 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                             setState(() {
                               _detailFuture = AnimeApiService
                                   .fetchAnimeDetail(widget.anime.id)
-                                  .timeout(const Duration(seconds: 45));
+                                  .timeout(const Duration(seconds: 12));
                               _episodesFuture = AnimeApiService
                                   .fetchAnimeEpisodes(widget.anime.id)
-                                  .timeout(const Duration(seconds: 45));
+                                  .timeout(const Duration(seconds: 12));
                               _recommendationsFuture = AnimeApiService
                                   .fetchAnimeRecommendations(widget.anime.id, title: widget.anime.title)
-                                  .timeout(const Duration(seconds: 45));
+                                  .timeout(const Duration(seconds: 12));
                               _voiceActorsFuture = AnimeApiService
                                   .fetchAnimeVoiceActors(widget.anime.id, title: widget.anime.title)
-                                  .timeout(const Duration(seconds: 45));
+                                  .timeout(const Duration(seconds: 12));
                             });
                           },
                           child: Container(
@@ -501,15 +586,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
                           const SizedBox(width: 10),
                           _buildRatingBadge(detail.score),
                         ],
-                      ),
-                      const SizedBox(height: 16),
-                      _InfoGrid(
-                        studio: detail.studios.isNotEmpty
-                            ? detail.studios.join(', ')
-                            : null,
-                        episodes: displayEpisodes,
-                        status: detail.status,
-                        rank: detail.rank,
                       ),
                       const SizedBox(height: 16),
                       if (detail.genres.isNotEmpty)
@@ -937,105 +1013,6 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen>
           fontWeight: isAccent ? FontWeight.w700 : FontWeight.w500,
         ),
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// _InfoGrid — Mirainime-inspired 2-column metadata panel (Studio/Episodes
-// left, Status/Rank right), rendered as one liquid-glass pane instead of
-// scattered chips. Only surfaces fields JikanAnimeDetail actually has —
-// no season/duration, since anime_api_service.dart doesn't fetch those.
-class _InfoGrid extends StatelessWidget {
-  const _InfoGrid({
-    required this.studio,
-    required this.episodes,
-    required this.status,
-    required this.rank,
-  });
-
-  final String? studio;
-  final int episodes;
-  final String status;
-  final int? rank;
-
-  @override
-  Widget build(BuildContext context) {
-    return LiquidGlassPill(
-      borderRadius: AppTheme.radiusLg,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      alignment: Alignment.centerLeft,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _InfoField(label: 'Studio', value: studio ?? '—'),
-                const SizedBox(height: 14),
-                _InfoField(label: 'Total Episodes', value: '$episodes'),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 66,
-            child: VerticalDivider(
-              color: Colors.white.withValues(alpha: 0.12),
-              width: 24,
-              thickness: 1,
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _InfoField(label: 'Status', value: status),
-                const SizedBox(height: 14),
-                _InfoField(
-                  label: 'Rank',
-                  value: rank != null ? '#$rank' : 'N/A',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoField extends StatelessWidget {
-  const _InfoField({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: AppTheme.textSecondary.withValues(alpha: 0.7),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1482,93 +1459,7 @@ class _RecommendationCardSkeletonState
   }
 }
 
-class _FavoriteButton extends StatelessWidget {
-  final AnimeModel anime;
-  const _FavoriteButton({required this.anime});
 
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<List<AnimeModel>>(
-      valueListenable: MockDataService.favoritesNotifier,
-      builder: (context, list, _) {
-        final active = list.any((a) => a.id == anime.id);
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: LiquidGlassPill(
-            borderRadius: 24,
-            compact: true,
-            padding: EdgeInsets.zero,
-            alignment: Alignment.center,
-            child: IconButton(
-              tooltip: active ? 'Remove from Favorites' : 'Add to Favorites',
-              icon: Icon(
-                active ? Icons.favorite : Icons.favorite_outline,
-                color: active ? AppTheme.highlight : Colors.white,
-              ),
-              onPressed: () {
-                MockDataService.toggleFavorite(anime);
-                ScaffoldMessenger.of(context).clearSnackBars();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(active
-                        ? 'Removed from Favorites'
-                        : 'Added to Favorites'),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _WatchlistButton extends StatelessWidget {
-  final AnimeModel anime;
-  const _WatchlistButton({required this.anime});
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<List<AnimeModel>>(
-      valueListenable: MockDataService.libraryNotifier,
-      builder: (context, list, _) {
-        final active = list.any((a) => a.id == anime.id);
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: LiquidGlassPill(
-            borderRadius: 24,
-            compact: true,
-            padding: EdgeInsets.zero,
-            alignment: Alignment.center,
-            child: IconButton(
-              tooltip: active ? 'Remove from Watchlist' : 'Add to Watchlist',
-              icon: Icon(
-                active ? Icons.bookmark : Icons.bookmark_outline,
-                color: active ? AppTheme.highlight : Colors.white,
-              ),
-              onPressed: () {
-                MockDataService.toggleWatchlist(anime);
-                ScaffoldMessenger.of(context).clearSnackBars();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(active
-                        ? 'Removed from Watchlist'
-                        : 'Added to Watchlist'),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Watch Now — bold redesign: gradient-filled pill with a soft outer glow

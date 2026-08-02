@@ -1,0 +1,105 @@
+# AniVerse CI — GitHub Actions
+# Build Android APK (ubuntu) + iOS IPA (macOS runner).
+# Jalankan otomatis tiap push ke main/master, atau manual (workflow_dispatch).
+#
+# Secret yang WAJIB di-set di GitHub → Settings → Secrets and variables → Actions:
+#   IOS_DIST_CERT_P12       : base64 dari dist cert .p12  (optional, cuma buat iOS)
+#   IOS_CERT_PASSWORD       : password .p12              (optional, cuma buat iOS)
+#   IOS_PROVISIONING_PROFILE: base64 dari .mobileprovision (optional, cuma buat iOS)
+#   KEYCHAIN_PASSWORD       : password keychain sementara (optional, cuma buat iOS)
+#
+# Firebase: daftarkan SHA-1 cert signing (release + debug) ke console Firebase
+# untuk client `my.aniverse.app` biar Google Sign-In Android jalan.
+
+name: Build AniVerse (Android + iOS)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  # ───────────────────────── Android ─────────────────────────
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java (Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build APK (release)
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aniverse-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
+
+  # ───────────────────────── iOS ─────────────────────────
+  ios:
+    name: iOS IPA
+    runs-on: macos-latest
+    needs: android
+    # Job ini skip otomatis kalau secret Apple belum di-set (biar gak fail merah).
+    if: ${{ secrets.IOS_DIST_CERT_P12 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Decode & install signing cert + provisioning profile
+        if: "${{ secrets.IOS_DIST_CERT_P12 != '' }}"
+        env:
+          IOS_DIST_CERT_P12: ${{ secrets.IOS_DIST_CERT_P12 }}
+          IOS_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain-db
+          echo -n "$IOS_DIST_CERT_P12" | base64 --decode > $RUNNER_TEMP/dist.p12
+          echo -n "$IOS_PROVISIONING_PROFILE" | base64 --decode > $RUNNER_TEMP/profile.mobileprovision
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$RUNNER_TEMP/dist.p12" -P "$IOS_CERT_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$RUNNER_TEMP/profile.mobileprovision" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Build IPA (release)
+        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aniverse-ios-ipa
+          path: build/ios/ipa/*.ipa
+          retention-days: 14

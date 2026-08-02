@@ -11,6 +11,9 @@ import 'my_episode_links.dart';
 import 'browser_fullscreen.dart';
 import 'streaming_service.dart';
 import 'widgets/liquid_glass.dart';
+import 'trailer_links.dart';
+import 'trailer_player.dart';
+import 'anime_api_service.dart';
 // Conditional import: web uses HTML5 video element, mobile uses stub
 import 'video_element_stub.dart'
     if (dart.library.html) 'video_element_web.dart';
@@ -30,6 +33,12 @@ final _kWhite60 = AppTheme.textPrimary.withValues(alpha: 0.66);
 final _kWhite40 = AppTheme.textPrimary.withValues(alpha: 0.46);
 final _kWhite10 = AppTheme.textPrimary.withValues(alpha: 0.09);
 final _kWhite06 = AppTheme.textPrimary.withValues(alpha: 0.09);
+
+/// Legacy hardcoded last-resort stream (Sub Indo HD). Only used when neither a
+/// manual link, a catalog link, an auto-scraped stream, nor a YouTube trailer
+/// can be resolved — so the player is never left empty.
+const String _kFrierenFallbackUrl =
+    'https://stor.halahgan.com/dl/storage/86/a97b2a070fc918b21efe6f892bd0ea49575f3978-svnAOy.mp4?name=%5BNimegami%5D+Sousou+no+Frieren+Ep+01+%281080p%29.mp4?filename=%5BNimegami%5D%20Sousou%20no%20Frieren%20Ep%2001%20%281080p%29.mp4';
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
 class WatchScreen extends StatefulWidget {
@@ -530,31 +539,109 @@ class _WatchScreenState extends State<WatchScreen>
           });
           debugPrint('[WatchScreen] auto-stream SUCCESS: ${res.streamUrl}');
         } else {
-          setState(() {
-            final fallbackUrl = 'https://stor.halahgan.com/dl/storage/86/a97b2a070fc918b21efe6f892bd0ea49575f3978-svnAOy.mp4?name=%5BNimegami%5D+Sousou+no+Frieren+Ep+01+%281080p%29.mp4?filename=%5BNimegami%5D%20Sousou%20no%20Frieren%20Ep%2001%20%281080p%29.mp4';
-            final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_fallback_' + DateTime.now().millisecondsSinceEpoch.toString();
-            _resolvedVideoUrl = fallbackUrl;
-            _resolvedQuality = '1080p (Sub Indo)';
-            _availableQualities = ['1080p (Sub Indo)', '720p HD', '480p'];
-            _iframeViewId = newViewId;
-            _iframeRegistered = false;
-          });
-          debugPrint('[WatchScreen] auto-stream empty — automatically playing Sub Indo HD fallback stream!');
+          debugPrint('[WatchScreen] auto-stream empty — falling back to trailer for "${widget.anime.title}"');
+          _applyTrailerFallback();
         }
       }).catchError((e) {
         if (!mounted) return;
-        setState(() {
-          final fallbackUrl = 'https://stor.halahgan.com/dl/storage/86/a97b2a070fc918b21efe6f892bd0ea49575f3978-svnAOy.mp4?name=%5BNimegami%5D+Sousou+no+Frieren+Ep+01+%281080p%29.mp4?filename=%5BNimegami%5D%20Sousou%20no%20Frieren%20Ep%2001%20%281080p%29.mp4';
-          final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_fallback_' + DateTime.now().millisecondsSinceEpoch.toString();
-          _resolvedVideoUrl = fallbackUrl;
-          _resolvedQuality = '1080p (Sub Indo)';
-          _availableQualities = ['1080p (Sub Indo)', '720p HD', '480p'];
-          _iframeViewId = newViewId;
-          _iframeRegistered = false;
-        });
-        debugPrint('[WatchScreen] auto-stream error — using Sub Indo HD fallback stream: $e');
+        debugPrint('[WatchScreen] auto-stream error — falling back to trailer: $e');
+        _applyTrailerFallback();
       });
     }
+  }
+
+  /// Fallback when no manual/catalog link exists and auto-scrape yields
+  /// nothing: play the anime's YouTube trailer instead of a wrong hardcoded
+  /// video. Resolution order:
+  ///   1. trailer registered in trailer_links.dart (getTrailerUrl),
+  ///   2. trailer fetched from Jikan by malId (AnimeApiService),
+  ///   3. legacy hardcoded Sub Indo stream as an absolute last resort.
+  Future<void> _applyTrailerFallback() async {
+    String? trailer = getTrailerUrl(widget.anime.title, anime: widget.anime);
+    if (trailer == null && widget.anime.malId != null) {
+      try {
+        final detail = await AnimeApiService.fetchAnimeDetail(
+          widget.anime.malId.toString(),
+        );
+        final yt = detail.trailerYoutubeId;
+        if (yt != null && yt.isNotEmpty) {
+          trailer = 'https://www.youtube.com/watch?v=$yt';
+        }
+      } catch (e) {
+        debugPrint('[WatchScreen] Jikan trailer fetch failed for malId=${widget.anime.malId}: $e');
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      if (trailer != null) {
+        _resolvedVideoUrl = trailer;
+        _resolvedQuality = 'Trailer (YouTube)';
+        _availableQualities = const ['Trailer (YouTube)'];
+        _iframeViewId = '';
+        _iframeRegistered = false;
+      } else {
+        _resolvedVideoUrl = _kFrierenFallbackUrl;
+        _resolvedQuality = '1080p (Sub Indo)';
+        _availableQualities = const ['1080p (Sub Indo)', '720p HD', '480p'];
+        _iframeViewId = 'video_iframe_${widget.anime.id}_ep${_currentEpisode.number}_fallback_' +
+            DateTime.now().millisecondsSinceEpoch.toString();
+        _iframeRegistered = false;
+      }
+    });
+  }
+
+  /// Renders a YouTube trailer as the watch fallback (reuses TrailerPlayer,
+  /// which handles both the web iframe and the native youtube_player_flutter).
+  Widget _trailerFallbackPlayer(String url) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.background.withValues(alpha: 0.4),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: AppTheme.textPrimary.withValues(alpha: 0.08)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              TrailerPlayer(
+                trailerUrl: url,
+                fallback: _thumbnail(),
+                playWithSound: false,
+              ),
+              Positioned(
+                top: 10,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'TRAILER',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ── HTML5 video element — Flutter Web only ───────────────────────────────
@@ -771,8 +858,12 @@ class _WatchScreenState extends State<WatchScreen>
   // ─── Premium Video Player ─────────────────────────────────────────────────
 
   Widget _videoPlayer(BuildContext context) {
-    // ── Kalau ada URL dari my_episode_links/catalog → tampilkan iframe real ──────────
     final videoUrl = _resolvedVideoUrl;
+    // ── Trailer fallback (YouTube): kalau URL-nya YouTube, render player trailer ──
+    if (videoUrl != null && videoUrl.isNotEmpty && !_forceMockPlayer && extractYoutubeId(videoUrl) != null) {
+      return _trailerFallbackPlayer(videoUrl);
+    }
+    // ── Kalau ada URL dari my_episode_links/catalog → tampilkan iframe real ──────────
     if (videoUrl != null && videoUrl.isNotEmpty && _iframeViewId.isNotEmpty && !_forceMockPlayer) {
       return Container(
         decoration: BoxDecoration(

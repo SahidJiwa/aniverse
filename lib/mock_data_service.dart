@@ -524,7 +524,7 @@ class MockDataService {
         episodes: _buildEpisodes(28, 'SousouFrieren'),
         releaseDay: null,
         nextEpisodeAt: null,
-        trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
+        trailerUrl: 'https://www.youtube.com/watch?v=jy4tGgjT7P0',
         voiceActors: const [
           VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'assets/images/voice_actors/tanezaki__atsumi.jpg', characterImageUrl: 'assets/images/voice_actors/frieren.jpg', language: 'Japanese'),
           VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'assets/images/voice_actors/kobayashi__chiaki.jpg', characterImageUrl: 'assets/images/voice_actors/himmel.jpg', language: 'Japanese'),
@@ -544,7 +544,7 @@ class MockDataService {
         episodes: _buildEpisodes(12, 'FrierenS2'),
         releaseDay: 5,
         nextEpisodeAt: nextAiring(5, 23),
-        trailerUrl: 'https://www.youtube.com/watch?v=qgQunD218l0',
+        trailerUrl: 'https://www.youtube.com/watch?v=jy4tGgjT7P0',
         voiceActors: const [
           VoiceActorModel(malId: 0, name: 'Atsumi Tanezaki', characterName: 'Frieren', imageUrl: 'assets/images/voice_actors/tanezaki__atsumi.jpg', characterImageUrl: 'assets/images/voice_actors/frieren.jpg', language: 'Japanese'),
           VoiceActorModel(malId: 1, name: 'Chiaki Kobayashi', characterName: 'Himmel', imageUrl: 'assets/images/voice_actors/kobayashi__chiaki.jpg', characterImageUrl: 'assets/images/voice_actors/himmel.jpg', language: 'Japanese'),

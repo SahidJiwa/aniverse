@@ -9,3 +9,9 @@ build/
 *.ipa
 
 migration_package/service-account-key.json
+
+# IDE / caches / logs
+.vs/
+*.log
+.wrangler/
+.netlify/

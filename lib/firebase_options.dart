@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCGrZ096EuKlk8Fl9FiiirFdbjoAePqxKk',
-    appId: '1:30870693875:android:819d635f89c39dcfc4d486',
+    appId: '1:30870693875:android:47aa4661eefca5adc4d486',
     messagingSenderId: '30870693875',
     projectId: 'my-aniverse',
     storageBucket: 'my-aniverse.firebasestorage.app',
@@ -63,7 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '30870693875',
     projectId: 'my-aniverse',
     storageBucket: 'my-aniverse.firebasestorage.app',
-    iosBundleId: 'com.example.aniverse',
+    iosBundleId: 'my.aniverse.app',
   );
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDjIXWEL71a4TT9fv8hZt51CjN8SvnxacQ',
@@ -71,7 +71,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '30870693875',
     projectId: 'my-aniverse',
     storageBucket: 'my-aniverse.firebasestorage.app',
-    iosBundleId: 'com.example.aniverse',
+    iosBundleId: 'my.aniverse.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

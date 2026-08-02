@@ -66,13 +66,28 @@ AnimeModel _animeFromJson(Map<String, dynamic> j) {
     isTrending: j['isTrending'] as bool? ?? false,
     releaseDay: releaseDay,
     episodes: buildCatalogEpisodes(count, tag, customStreamUrl: epLink),
-    // Use null when addedAt absent — avoids incorrectly marking old entries as newly added
-    addedAt: j['addedAt'] != null ? DateTime.tryParse(j['addedAt'] as String) : null,
+    // Handle all 3 shapes of addedAt: Firestore Timestamp (admin writes via
+    // FieldValue.serverTimestamp), DateTime, or ISO-8601 String (local cache /
+    // cloud JSON). The old hard cast `j['addedAt'] as String` threw on a
+    // Timestamp, so the realtime listener skipped the whole doc — that's why
+    // anime added/edited in the Admin Panel never synced to the app.
+    addedAt: _parseAddedAt(j['addedAt']),
     catalogEpisodeLink: epLink,
     trailerUrl: j['trailerUrl'] as String?,
     placement: placement,
     status: j['status'] as String? ?? 'Ongoing',
   );
+}
+
+/// Parse `addedAt` from any shape it can appear as across sources:
+/// Firestore [Timestamp] (admin writes via FieldValue.serverTimestamp),
+/// in-memory [DateTime], or an ISO-8601 [String] (local cache / cloud JSON).
+DateTime? _parseAddedAt(dynamic v) {
+  if (v == null) return null;
+  if (v is DateTime) return v;
+  if (v is Timestamp) return v.toDate();
+  if (v is String) return DateTime.tryParse(v);
+  return null;
 }
 
 // ─── CatalogStore ───────────────────────────────────────────────────────────
@@ -100,16 +115,26 @@ class CatalogStore extends ChangeNotifier {
   // untuk fallback ke katalog hardcoded lama).
   // Hardcoded catalog HANYA dipakai sebelum Firestore pernah connect sama
   // sekali (misal saat offline di run pertama).
+  /// Entries whose title is missing or is the placeholder "Untitled" are
+  /// filtered out of every visible list — they're catalog docs the user
+  /// never named, and they just leak an empty "Untitled" card into
+  /// Home / Explore / Jadwal.
+  bool _isValidEntry(AnimeModel a) =>
+      a.title.trim().isNotEmpty && a.title.trim().toLowerCase() != 'untitled';
+
+  List<AnimeModel> get _validUserEntries =>
+      _userEntries.where(_isValidEntry).toList();
+
   List<AnimeModel> get all {
-    if (_firestoreHasResponded) return _userEntries;
-    if (_userEntries.isNotEmpty) return _userEntries;
-    return CustomAnimeCatalog.all;
+    if (_firestoreHasResponded) return _validUserEntries;
+    if (_userEntries.isNotEmpty) return _validUserEntries;
+    return CustomAnimeCatalog.all.where(_isValidEntry).toList();
   }
 
   /// Entries added within the last 14 days (user-added only)
   List<AnimeModel> get newEntries {
     final cutoff = DateTime.now().subtract(const Duration(days: _kNewDays));
-    return _userEntries.where((a) {
+    return _validUserEntries.where((a) {
       final at = a.addedAt;
       return at != null && at.isAfter(cutoff);
     }).toList()
@@ -119,7 +144,7 @@ class CatalogStore extends ChangeNotifier {
   /// Entries older than 14 days (user-added only)
   List<AnimeModel> get classicEntries {
     final cutoff = DateTime.now().subtract(const Duration(days: _kNewDays));
-    return _userEntries.where((a) {
+    return _validUserEntries.where((a) {
       final at = a.addedAt;
       return at == null || at.isBefore(cutoff);
     }).toList()

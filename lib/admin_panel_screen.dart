@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
-import 'anime_model.dart';
+import 'proxied_network_image.dart';
 
 // ── Image proxy — mengatasi CORS block dari CDN sosial media ───────────────
 // Domain seperti i.pinimg.com (Pinterest), pbs.twimg.com (X), dll menolak
@@ -20,37 +20,6 @@ import 'anime_model.dart';
 // mengizinkan. Ganti WORKER_BASE_URL di bawah dengan URL worker kamu setelah
 // deploy (format: https://aniverse-image-proxy.<subdomain>.workers.dev).
 //
-// PENTING: ganti placeholder ini sebelum dipakai — kalau masih placeholder,
-// _proxifyImage() akan mengembalikan URL asli apa adanya (fallback aman,
-// tidak akan crash, tapi CORS tetap gagal untuk domain yang di-block).
-const String _kImageProxyWorkerBase =
-    'https://aniverse-image-proxy.tirtasisahid.workers.dev';
-
-// Domain yang diketahui mem-block CORS dan butuh lewat proxy. Domain di luar
-// daftar ini (mis. CDN sendiri, MAL, dsb yang biasanya sudah izinkan CORS)
-// tetap diakses langsung tanpa proxy — supaya tidak menambah latency kalau
-// memang tidak perlu.
-const List<String> _kCorsBlockedHosts = [
-  'pinimg.com',
-  'twimg.com',
-  'cdninstagram.com',
-  'fbsbx.com',
-  'gstatic.com',
-  'googleusercontent.com',
-];
-
-/// Mengembalikan URL yang sudah dilewatkan proxy kalau domainnya diketahui
-/// mem-block CORS, atau URL asli apa adanya kalau tidak perlu / worker belum
-/// dikonfigurasi.
-String _proxifyImage(String rawUrl) {
-  if (_kImageProxyWorkerBase.contains('YOUR-SUBDOMAIN')) return rawUrl;
-  final uri = Uri.tryParse(rawUrl);
-  if (uri == null || !uri.hasScheme) return rawUrl;
-  final needsProxy = _kCorsBlockedHosts.any((h) => uri.host.endsWith(h));
-  if (!needsProxy) return rawUrl;
-  return '$_kImageProxyWorkerBase/?url=${Uri.encodeComponent(rawUrl)}';
-}
-
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
 
@@ -456,27 +425,20 @@ class _AnimeAdminTile extends StatelessWidget {
                   width: 68,
                   height: 92,
                   color: AppTheme.surfaceElevated,
-                  child: imageUrl.isNotEmpty
-                      ? Image.network(
-                          _proxifyImage(imageUrl),
-                          fit: BoxFit.cover,
-                          loadingBuilder: (ctx, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent),
-                              ),
-                            );
-                          },
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.broken_image_rounded,
-                            color: AppTheme.textSecondary,
-                            size: 22,
-                          ),
-                        )
-                      : const Icon(Icons.image_rounded, color: AppTheme.textSecondary, size: 22),
+                  child: ProxiedNetworkImage.forUrl(
+                    url: imageUrl,
+                    width: 68,
+                    height: 92,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(10),
+                    fallback: const Center(
+                      child: Icon(
+                        Icons.image_rounded,
+                        color: AppTheme.textSecondary,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -892,43 +854,20 @@ class _AnimeFormScreenState extends State<_AnimeFormScreen> {
                     child: AnimatedBuilder(
                       animation: _imageUrl,
                       builder: (context, _) {
-                        final rawUrl = _imageUrl.text;
-                        final url = rawUrl.trim();
-                        if (url.isEmpty) {
-                          return const Center(
-                            child: Icon(Icons.image_outlined, color: AppTheme.textSecondary, size: 26),
-                          );
-                        }
-                        return Image.network(
-                          _proxifyImage(url),
-                          key: ValueKey(url),
+                        final url = _imageUrl.text.trim();
+                        return ProxiedNetworkImage.forUrl(
+                          url: url,
+                          width: 84,
+                          height: 118,
                           fit: BoxFit.cover,
-                          loadingBuilder: (ctx, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(
-                              child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent),
-                              ),
-                            );
-                          },
-                          errorBuilder: (_, __, stackTrace) {
-                            // Debug print — kelihatan di console (F12) persis
-                            // kenapa Image.network gagal, dan apakah ada
-                            // karakter tersembunyi (panjang teks vs trimmed).
-                            debugPrint(
-                              '[PosterPreview] GAGAL load. '
-                              'raw.length=${rawUrl.length} trimmed.length=${url.length} '
-                              'url="$url"',
-                            );
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(4),
-                                child: Icon(Icons.broken_image_rounded, color: Colors.redAccent, size: 24),
-                              ),
-                            );
-                          },
+                          borderRadius: BorderRadius.circular(12),
+                          fallback: const Center(
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: AppTheme.textSecondary,
+                              size: 26,
+                            ),
+                          ),
                         );
                       },
                     ),

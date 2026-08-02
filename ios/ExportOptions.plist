@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Ganti ke "app-store" (TestFlight/App Store) atau "ad-hoc"/"development" sesuai kebutuhan -->
+    <key>method</key>
+    <string>app-store</string>
+
+    <!-- Team ID Apple Developer lo (format 10 huruf/angka, cth: AB12CD34EF) -->
+    <key>teamID</key>
+    <string>ISI_TEAM_ID_LO</string>
+
+    <key>signingStyle</key>
+    <string>manual</string>
+
+    <!-- Map bundle id -> nama Provisioning Profile (persis seperti di Apple Developer) -->
+    <key>provisioningProfiles</key>
+    <dict>
+        <key>my.aniverse.app</key>
+        <string>ISI_NAMA_PROVISIONING_PROFILE_LO</string>
+    </dict>
+
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>compileBitcode</key>
+    <false/>
+</dict>
+</plist>
