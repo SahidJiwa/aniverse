@@ -1,3 +1,15 @@
-name = "aniverse-proxy"
-main = "src/index.js"
-compatibility_date = "2026-01-01"
+name = "aniverse-stream-proxy"
+main = "stream-proxy.js"
+compatibility_date = "2024-09-23"
+
+# Ganti account_id dengan punya lo (lihat di dashboard Cloudflare)
+# account_id = "xxxx"
+
+[vars]
+# (opsional) whitelist domain situs yang boleh di-proxy
+ALLOWED_HOSTS = "oploverz.site,upbolt.to,acefile.co,animeboy.net,animeku.tv,kusonime.com,drivenime.com"
+
+# Untuk cache KV (opsional, hapus kalau gak pakai):
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "xxxx"

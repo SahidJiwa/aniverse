@@ -248,6 +248,22 @@ class CustomAnimeCatalog {
           ),
         ],
       ),
+
+      // 5. Ansatsu Kyoushitsu Movie: Minna no Jikan (Assassination Classroom Movie)
+      AnimeModel(
+        id: 'custom-ansatsu-movie',
+        title: 'Ansatsu Kyoushitsu Movie: Minna no Jikan',
+        imageUrl: 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21229.jpg',
+        rating: 7.6,
+        genres: ['Action', 'Comedy', 'School', 'Shounen'],
+        description:
+            'Movie compilation dari Ansatsu Kyoushitsu yang menceritakan kelas 3-E dan guru mereka Koro-sensei.',
+        isTrending: false,
+        episodes: buildCatalogEpisodes(1, 'AnsatsuMovie'),
+        releaseDay: null,
+        nextEpisodeAt: null,
+        voiceActors: const [],
+      ),
     ];
   }
 }

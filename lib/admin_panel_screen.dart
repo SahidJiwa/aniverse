@@ -5,12 +5,15 @@
 // semua screen lain auto-update tanpa refresh.
 
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_theme.dart';
 import 'proxied_network_image.dart';
+import 'custom_anime_catalog.dart';
+import 'my_episode_links.dart';
 
 // ── Image proxy — mengatasi CORS block dari CDN sosial media ───────────────
 // Domain seperti i.pinimg.com (Pinterest), pbs.twimg.com (X), dll menolak
@@ -100,6 +103,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         ),
         iconTheme: const IconThemeData(color: AppTheme.textPrimary),
         actions: [
+          IconButton(
+            tooltip: 'Seed Local → Cloud (push semua anime + link ke Firestore)',
+            icon: const Icon(Icons.cloud_upload_rounded),
+            onPressed: () => _seedFromLocalCatalog(context),
+          ),
           IconButton(
             tooltip: 'Ganti PIN Admin',
             icon: const Icon(Icons.lock_reset_rounded),
@@ -279,6 +287,83 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         builder: (_) => _AnimeFormScreen(docId: docId, data: data),
       ),
     );
+  }
+
+  /// Push semua anime + link video dari file lokal (custom_anime_catalog +
+  /// my_episode_links) ke Firestore. Idempoten: anime yang sudah ada di
+  /// Firestore (by id) dilewati, jadi aman di-klik berulang.
+  /// Setelah seed, CatalogStore realtime listener menangani sync otomatis
+  /// ke semua user — admin edit di sini langsung ter-reflect di app user.
+  Future<void> _seedFromLocalCatalog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Seed Local → Cloud?'),
+        content: const Text(
+          'Semua anime + link video dari file lokal akan di-push ke Firestore. '
+          'Anime yang sudah ada (by id) dilewati. Setelah ini, edit di Admin Panel '
+          'otomatis tersinkron ke semua user.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Seed Sekarang'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final existing = await firestore.collection('anime').get();
+      final existingIds = existing.docs.map((d) => d.id).toSet();
+
+      int added = 0;
+      for (final anime in CustomAnimeCatalog.all) {
+        if (existingIds.contains(anime.id)) continue;
+
+        final epLinks = <String, Map<String, String>>{};
+        for (final ep in anime.episodes) {
+          final link = resolveMyEpisodeLink(anime.title, ep.number);
+          if (link != null && link.qualities.isNotEmpty) {
+            epLinks[ep.number.toString()] = Map.from(link.qualities);
+          }
+        }
+        final catalogLinkJson = epLinks.isNotEmpty ? jsonEncode(epLinks) : '';
+
+        final payload = <String, dynamic>{
+          'title': anime.title,
+          'imageUrl': anime.imageUrl,
+          'rating': anime.rating,
+          'genres': anime.genres,
+          'description': anime.description,
+          'isTrending': anime.isTrending,
+          'status': anime.status,
+          'episodes': anime.episodes.length,
+          'episodeCount': anime.episodes.length,
+          'catalogEpisodeLink': catalogLinkJson,
+          'addedAt': FieldValue.serverTimestamp(),
+          if (anime.releaseDay != null) 'releaseDay': anime.releaseDay,
+          if (anime.trailerUrl != null) 'trailerUrl': anime.trailerUrl,
+        };
+        await firestore.collection('anime').doc(anime.id).set(payload);
+        added++;
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Seed selesai: $added anime di-push ke Cloud.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Seed gagal: $e')),
+        );
+      }
+    }
   }
 }
 
@@ -1699,4 +1784,6 @@ class AdminAccess {
       ),
     );
   }
+
+
 }

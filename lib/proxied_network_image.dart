@@ -407,9 +407,9 @@ class _ProxiedNetworkImageState extends State<ProxiedNetworkImage> {
       alignment: widget.alignment,
       color: widget.colorFilterColor,
       colorBlendMode: widget.colorBlendMode,
-      cacheWidth: (widget.width != null && widget.width!.isFinite)
+      cacheWidth: (widget.width != null && widget.width!.isFinite && widget.width! > 0)
           ? (widget.width! * 2).round()
-          : null,
+          : 720,
       loadingBuilder: (ctx, child, progress) {
         if (progress == null) {
           // Loaded successfully — this candidate is done, cancel its
@@ -434,11 +434,8 @@ class _ProxiedNetworkImageState extends State<ProxiedNetworkImage> {
         );
       },
       errorBuilder: (_, error, __) {
-        // ignore: avoid_print
-        print(
-          '[ProxiedNetworkImage] candidate $_index failed: '
-          '${effective[_index]} — $error',
-        );
+        // Silent-fail: jangan spam console tiap candidate gagal (404/CORS).
+        // UI tetap fallback ke placeholder/shimmer, lalu lanjut candidate berikutnya.
         _watchdog?.cancel();
         // See the loadingBuilder comment above — deferred for the same
         // reason (releasing our slot can synchronously setState() a

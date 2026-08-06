@@ -610,6 +610,38 @@ class StreamingService {
     }
   }
 
+  /// Resolve dari URL halaman episode via Cloudflare Worker
+  /// (aniverse-stream-proxy). Ini buat anime baru: lo cuma isi URL
+  /// halaman situs di my_episode_links.dart (field pageUrl), Worker
+  /// yang scrape .m3u8/.mp4 tiap play. Gak perlu download/upload.
+  static const _streamResolveBase =
+      'https://aniverse-stream-proxy.my-aniverse.workers.dev/resolve';
+
+  Future<StreamingResult> resolveFromPage(String pageUrl) async {
+    try {
+      final target = '$_streamResolveBase?page=${Uri.encodeComponent(pageUrl)}';
+      final res = await _client
+          .get(Uri.parse(target))
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) {
+        return StreamingResult(error: 'Worker error ${res.statusCode}');
+      }
+      final data = json.decode(res.body) as Map<String, dynamic>;
+      final streamUrl = data['streamUrl'] as String?;
+      if (streamUrl == null || streamUrl.isEmpty) {
+        return StreamingResult(error: data['error']?.toString() ?? 'No stream');
+      }
+      // Proxy video biar gak kena anti-hotlink di app.
+      final wrapped =
+          '$_streamProxyBase?url=${Uri.encodeComponent(streamUrl)}';
+      final qualities = (data['qualities'] as Map<String, dynamic>?)
+          ?.map((k, v) => MapEntry(k, '$_streamProxyBase?url=${Uri.encodeComponent(v as String)}'));
+      return StreamingResult(streamUrl: wrapped, qualities: qualities);
+    } catch (e) {
+      return StreamingResult(error: 'Resolve page error: ${e.toString()}');
+    }
+  }
+
   Future<StreamingResult> _resolveIndoProvider(
       String animeTitle, int episodeNumber) async {
     _log('[IndoScraper] Resolving: $animeTitle ep $episodeNumber');
@@ -644,6 +676,37 @@ class StreamingService {
   // HLS (.m3u8) playlists so their segment URLs stay proxied too.
   static const _streamProxyBase =
       'https://aniverse-video-proxy.my-aniverse.workers.dev/stream';
+
+  /// Wrap raw video URL (.m3u8/.mp4) lewat Cloudflare Worker biar gak kena
+  /// anti-hotlink (Referer di-inject di server) + cache 24h. Ini Opsi A:
+  /// lo cuma paste URL mentah dari DevTools, app yg wrap otomatis.
+  /// Kalau URL udah di-wrap, atau dari host terpercaya (stor.halahgan /
+  /// github release / googleusercontent) yang emang direct & permanen,
+  /// balikin apa adanya — gak usah proxy (hindari regresi video yg udah
+  /// jalan kayak Frieren).
+  static const _trustedHosts = {
+    'stor.halahgan.com',
+    'stordl.halahgan.com',
+    'berkasdrive.com',
+    'direct-stor.berkasdrive.com',
+    'github.com',
+    'githubusercontent.com',
+    'raw.githubusercontent.com',
+    'storage.googleapis.com',
+    'bunnycdn.com',
+    'bunnystream.com',
+  };
+
+  static String wrapProxyUrl(String raw) {
+    if (raw.startsWith(_streamProxyBase)) return raw;
+    try {
+      final host = Uri.parse(raw).host.toLowerCase();
+      if (_trustedHosts.any((h) => host == h || host.endsWith('.$h'))) {
+        return raw;
+      }
+    } catch (_) {}
+    return '$_streamProxyBase?url=${Uri.encodeComponent(raw)}';
+  }
 
   StreamingResult _proxied(StreamingResult result) {
     final url = result.streamUrl;

@@ -28,5 +28,8 @@ void setYoutubeTrailerMute(String viewId, bool muted) {}
 /// No-op on non-web.
 void disposeYoutubeTrailer(String viewId) {}
 
-/// No-op on non-web.
-void armAutoUnmute(void Function() onFirstGesture) {}
+/// No-op on non-web. Returns a no-op cancel function for API parity with
+/// the web build (which returns a real listener-removal closure).
+void Function() armAutoUnmute(void Function() onFirstGesture) {
+  return () {};
+}

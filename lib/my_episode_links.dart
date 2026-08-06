@@ -10,6 +10,18 @@
 //     'Auto': 'https://link-video-kamu.com/ep1.mp4',
 //   }),
 //
+// ── OPSI A (tercepat, gak download/upload): ──────────────────────────────
+//   Copy URL mentah .m3u8 / .mp4 langsung dari DevTools (Network → filter
+//   m3u8/mp4 → klik kanan → Copy link address). Tempel apa adanya — app
+//   otomatis wrap lewat Cloudflare Worker biar gak kena anti-hotlink.
+//   Contoh (URL upbolt/oploverz yg lo copy):
+//   'Tomb Raider King_1': MyEpisodeLink({
+//     'Auto': 'https://edge01.upbolt.to/xxx/playlist.m3u8',
+//   }),
+//   → app otomatis jadi:
+//   https://aniverse-video-proxy.my-aniverse.workers.dev/stream?url=...
+//   NOTE: token upbolt bisa expired — kalau besok mati, copy URL baru.
+//
 // Cara pakai (banyak kualitas, biar ada tombol pilih kualitas
 // di player — lihat panduan generate multi-kualitas dari 1 file
 // pakai ffmpeg yang dikasih terpisah):
@@ -52,7 +64,20 @@ class MyEpisodeLink {
   /// [qualities] — opsional, kosongin kalau belum ada.
   final String? subtitleUrl;
 
-  const MyEpisodeLink(this.qualities, {this.thumbnailUrl, this.subtitleUrl});
+  /// URL HALAMAN episode (bukan file video) — opsional.
+  /// Kalau diisi, app bakal minta Cloudflare Worker
+  /// (aniverse-stream-proxy) nge-resolve halaman ini jadi URL .m3u8/.mp4
+  /// otomatis. Ini buat anime baru: lo cuma tempel URL halaman situs
+  /// (oploverz/animeboy/dll), Worker yang cari video tiap play.
+  /// Contoh: 'https://oploverz.site/series/xxx/episode/1'
+  final String? pageUrl;
+
+  const MyEpisodeLink(
+    this.qualities, {
+    this.thumbnailUrl,
+    this.subtitleUrl,
+    this.pageUrl,
+  });
 }
 
 const Map<String, MyEpisodeLink> myEpisodeLinks = {
@@ -560,6 +585,13 @@ const Map<String, MyEpisodeLink> myEpisodeLinks = {
         'https://stor.halahgan.com/dl/storage/86/9eae60bb5766e0eb28dd6ad69e47fa7ce6d442f6-EBgUU1.mp4?name=%5BNimegami%5D+Mushoku+Tensei+Ep+11+%28480p%29.mp4?filename=%5BNimegami%5D%20Mushoku%20Tensei%20Ep%2011%20%28480p%29.mp4',
     '360p':
         'https://stor.halahgan.com/dl/storage/86/b4a7e5d74f091a5d5f4a7c81313a1d3ba76e72b9-zck41u.mp4?name=%5BNimegami%5D+Mushoku+Tensei+Ep+11+%28360p%29.mp4?filename=%5BNimegami%5D%20Mushoku%20Tensei%20Ep%2011%20%28360p%29.mp4',
+  }),
+  // ══════════════════════════════════════════════════════════════
+  // Ansatsu Kyoushitsu Movie: Minna no Jikan
+  // ══════════════════════════════════════════════════════════════
+  'Ansatsu Kyoushitsu Movie: Minna no Jikan_1': MyEpisodeLink({
+    '1080p':
+        'https://direct-stor.berkasdrive.com/dl/UPLOAD_BARU_2/Nimegami/Anime%20A/Ansatsu%20Kyoushitsu%20Movie%3A%20Minna%20no%20Jikan/%5BNimegami%5D_Ansatsu_Kyoushitsu_Movie_Minna_no_Jikan_%281080p%29.mp4?name=%5BNimegami%5D_Ansatsu_Kyoushitsu_Movie_Minna_no_Jikan_%281080p%29.mp4',
   }),
 };
 

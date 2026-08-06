@@ -95,22 +95,41 @@ void setYoutubeTrailerMute(String viewId, bool muted) {
 }
 
 /// Drop the stored handle for a registered trailer view so repeated unmute
-/// toggles don't leak detached iframes in the map.
+/// toggles don't leak detached iframes in the map. Also explicitly pauses
+/// and removes the live <iframe> node so the YouTube audio STOPS when the
+/// detail screen is left (e.g. navigating to WatchScreen) — Flutter's
+/// HtmlElementView doesn't always tear the DOM node down on its own, which
+/// left trailer audio bleeding over the episode player.
 void disposeYoutubeTrailer(String viewId) {
-  _trailerIframes.remove(viewId);
+  final iframe = _trailerIframes.remove(viewId);
+  if (iframe != null) {
+    // Stop playback (mute + pause via postMessage before detach).
+    try {
+      iframe.contentWindow?.postMessage(
+        jsonEncode({'event': 'command', 'func': 'pauseVideo', 'args': const []}),
+        '*',
+      );
+    } catch (_) {}
+    // Remove the actual DOM node so no audio can survive.
+    iframe.remove();
+  }
 }
 
 /// Wire a one-time document gesture listener that fires [onFirstGesture] on
 /// the user's first interaction anywhere on the page. That first real
 /// gesture is the user-activation browsers require for unmuted autoplay, so
 /// [TrailerPlayer] reloads the embed (gesture-initiated) with sound on.
-void armAutoUnmute(void Function() onFirstGesture) {
+/// Returns a function that removes the listener (call in dispose so the
+/// trailer's auto-unmute doesn't fire after the widget is gone — e.g. when
+/// navigating to the watch screen, where a stray unmute would overlap audio).
+void Function() armAutoUnmute(void Function() onFirstGesture) {
   void handler(html.Event _) {
     html.document.removeEventListener('pointerdown', handler);
     onFirstGesture();
   }
 
   html.document.addEventListener('pointerdown', handler);
+  return () => html.document.removeEventListener('pointerdown', handler);
 }
 
 /// Opens [url] in a new browser tab. Web-only — stub does nothing on native.

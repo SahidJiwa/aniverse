@@ -15,6 +15,12 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'youtube_trailer_stub.dart'
     if (dart.library.html) 'youtube_trailer_web.dart';
 
+/// Global flag: true = detail screen is the top route (trailer allowed to
+/// play). WatchScreen sets this to false on init (and back to true on
+/// dispose) so any trailer iframe left alive underneath is paused + removed
+/// from the DOM — that's what kills trailer audio bleeding into the episode.
+/// Defined here (not in the web-only file) so both web & native builds see it.
+final trailerAllowedNotifier = ValueNotifier<bool>(true);
 /// Pulls the 11-character YouTube video ID out of any of the URL shapes
 /// trailer_links.dart stores ("https://youtu.be/ID", "https://
 /// www.youtube.com/watch?v=ID", or an embed URL that already just has the
@@ -91,11 +97,23 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
   bool _muted = true;
   // Ensures the first-gesture auto-unmute listener is armed only once.
   bool _autoUnmuteArmed = false;
+  // Cancellation untuk listener global (biar bisa di-remove pas dispose).
+  void Function()? _cancelAutoUnmute;
+  // Listener notifier global: pas false (WatchScreen active di atas),
+  // trailer harus di-pause + cabut dari DOM biar audio gak nembus.
+  void _onTrailerAllowedChange() {
+    if (!trailerAllowedNotifier.value && _viewId != null) {
+      disposeYoutubeTrailer(_viewId!);
+      _viewId = null;
+      if (mounted) setState(() {});
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _muted = !widget.playWithSound;
+    trailerAllowedNotifier.addListener(_onTrailerAllowedChange);
     _setUpIfNeeded();
   }
 
@@ -103,6 +121,9 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
   void didUpdateWidget(covariant TrailerPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.trailerUrl != widget.trailerUrl) {
+      _cancelAutoUnmute?.call();
+      _cancelAutoUnmute = null;
+      _autoUnmuteArmed = false;
       if (_viewId != null) disposeYoutubeTrailer(_viewId!);
       _registered = false;
       _viewId = null;
@@ -116,8 +137,19 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
 
   @override
   void dispose() {
-    if (_viewId != null) disposeYoutubeTrailer(_viewId!);
+    // Stop global gesture listener biar suara trailer gak overlap di
+    // WatchScreen (root cause: listener gak di-remove → trailer reload
+    // di background + suara nembus video anime).
+    trailerAllowedNotifier.removeListener(_onTrailerAllowedChange);
+    _cancelAutoUnmute?.call();
+    _cancelAutoUnmute = null;
+    _autoUnmuteArmed = false;
+    if (_viewId != null) {
+      disposeYoutubeTrailer(_viewId!);
+      _viewId = null;
+    }
     _nativeController?.dispose();
+    _nativeController = null;
     super.dispose();
   }
 
@@ -143,7 +175,7 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
       _registered = true;
       if (!_autoUnmuteArmed) {
         _autoUnmuteArmed = true;
-        armAutoUnmute(_autoUnmute);
+        _cancelAutoUnmute = armAutoUnmute(_autoUnmute);
       }
     } else {
       // Native (Android/iOS): youtube_player_flutter drives an actual
@@ -214,52 +246,39 @@ class _TrailerPlayerState extends State<TrailerPlayer> {
     );
   }
 
+  // Trailer di-render di box 1920×1080 (16:9 / 1080p) lalu di-scale ke
+  // container hero. Pakai BoxFit.cover (bukan contain) biar fill penuh
+  // layar kayak background YouTube — di HP portrait gak ada bar hitam
+  // letterbox, crop sisi video aja. Scrim atas (di build()) tetep nutupin
+  // title YouTube, crop cover tetep sembunyiin logo bawah.
   Widget _webPlayer() => ClipRect(
         child: FittedBox(
-          fit: BoxFit.contain,
+          fit: BoxFit.cover,
           child: SizedBox(
             width: 1920,
             height: 1080,
-            child: Stack(
-              children: [
-                // Render the iframe taller than the visible box and pin it to
-                // the top, so YouTube's logo (painted at the iframe's bottom
-                // edge) falls outside the clip — controls=0 alone doesn't hide
-                // it. The small top letterbox this creates sits under the top
-                // scrim above.
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  right: 0,
-                  height: 1080 + 72,
-                  child: IgnorePointer(
-                    child: HtmlElementView(
-                      viewType: _viewId!,
-                      key: ValueKey<String>(_viewId!),
-                    ),
-                  ),
-                ),
-              ],
+            child: IgnorePointer(
+              child: HtmlElementView(
+                viewType: _viewId!,
+                key: ValueKey<String>(_viewId!),
+              ),
             ),
           ),
         ),
       );
 
   Widget _nativePlayer() => ClipRect(
-        child: Transform.scale(
-          scale: 1.08,
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: SizedBox(
-              width: 1920,
-              height: 1080,
-              child: IgnorePointer(
-                child: YoutubePlayer(
-                  controller: _nativeController!,
-                  showVideoProgressIndicator: false,
-                  bottomActions: const [],
-                  topActions: const [],
-                ),
+        child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: 1920,
+            height: 1080,
+            child: IgnorePointer(
+              child: YoutubePlayer(
+                controller: _nativeController!,
+                showVideoProgressIndicator: false,
+                bottomActions: const [],
+                topActions: const [],
               ),
             ),
           ),

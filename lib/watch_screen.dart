@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -97,6 +98,9 @@ class _WatchScreenState extends State<WatchScreen>
   String? _resolvedVideoUrl;
   String? _resolvedQuality;
   List<String> _availableQualities = [];
+  // Popup pemilih kualitas inline (jalan di mode fullscreen juga,
+  // gak pakai showModalBottomSheet yang ke-tutup layar fullscreen).
+  bool _showQualityPopup = false;
   // Unique key per-episode buat iframe HtmlElementView
   String _iframeViewId = '';
   bool _iframeRegistered = false;
@@ -124,6 +128,9 @@ class _WatchScreenState extends State<WatchScreen>
   @override
   void initState() {
     super.initState();
+    // Matikan trailer di detail screen (kalau masih nyangkut di bawah)
+    // biar audio gak nembus ke video episode.
+    trailerAllowedNotifier.value = false;
     debugPrint(
       '[WatchScreen] init anime.id="${widget.anime.id}" anime.title="${widget.anime.title}" '
       'episodesCount=${widget.anime.episodes.length} '
@@ -209,6 +216,9 @@ class _WatchScreenState extends State<WatchScreen>
 
   @override
   void dispose() {
+    // Balikin flag trailer biar detail screen (kalau masih di stack) bisa
+    // lanjut muter trailer lagi setelah WatchScreen ditutup.
+    trailerAllowedNotifier.value = true;
     // CW V2: simpan progress terakhir saat user menutup WatchScreen
     _syncContinueWatching();
     _fullscreenSub.cancel();
@@ -483,8 +493,44 @@ class _WatchScreenState extends State<WatchScreen>
     final link = resolveMyEpisodeLink(widget.anime.title, ep.number);
 
     if (link != null) {
+      // ── Mode baru: pageUrl → Worker resolve halaman jadi stream ──
+      if (link.qualities.isEmpty && link.pageUrl != null && link.pageUrl!.isNotEmpty) {
+        setState(() {
+          _resolvedVideoUrl = null;
+          _resolvedQuality = 'Searching...';
+          _availableQualities = [];
+          _iframeViewId = '';
+        });
+        debugPrint('[WatchScreen] resolving pageUrl via Worker: ${link.pageUrl}');
+        StreamingService().resolveFromPage(link.pageUrl!).then((res) {
+          if (!mounted) return;
+          if (res.streamUrl != null && res.streamUrl!.isNotEmpty) {
+            final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_page_' + DateTime.now().millisecondsSinceEpoch.toString();
+            final qualities = res.qualities != null ? res.qualities!.keys.toList() : ['Auto'];
+            setState(() {
+              _resolvedVideoUrl = res.streamUrl;
+              _resolvedQuality = qualities.first;
+              _availableQualities = qualities;
+              _iframeViewId = newViewId;
+              _iframeRegistered = false;
+            });
+            debugPrint('[WatchScreen] pageUrl resolve SUCCESS: ${res.streamUrl}');
+          } else {
+            debugPrint('[WatchScreen] pageUrl resolve empty: ${res.error}');
+            _applyTrailerFallback();
+          }
+        }).catchError((e) {
+          if (!mounted) return;
+          debugPrint('[WatchScreen] pageUrl resolve error: $e');
+          _applyTrailerFallback();
+        });
+        return;
+      }
+
       final quality = bestQualityFor(link);
-      final url = link.qualities[quality]!;
+      final url = StreamingService.wrapProxyUrl(link.qualities[quality]!);
+      // NAMA kualitas (1080p/720p/...), BUKAN URL — dipakai buat nampilin
+      // & match di popup pemilih kualitas. URL di-wrap pas dipilih.
       final qualities = sortedQualitiesFor(link);
       final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_${DateTime.now().millisecondsSinceEpoch}';
 
@@ -498,7 +544,53 @@ class _WatchScreenState extends State<WatchScreen>
 
       debugPrint('[WatchScreen] resolved url for "${widget.anime.title}" ep${ep.number}: $url (quality=$quality)');
     } else if (widget.anime.catalogEpisodeLink != null && widget.anime.catalogEpisodeLink!.isNotEmpty) {
-      String url = widget.anime.catalogEpisodeLink!;
+      // ── Admin CMS / Firestore catalogEpisodeLink ──
+      // Bisa berupa:
+      //   a) JSON per-episode per-kualitas:
+      //      {"1":{"1080p":"url",...}, "2":{...}}
+      //   b) URL flat tunggal (atau pakai {ep} placeholder)
+      // Prioritas #1 (di atas file lokal) biar admin edit → user langsung dapet.
+      final raw = widget.anime.catalogEpisodeLink!;
+      final epKey = ep.number.toString();
+      Map<String, String>? qualitiesForEp;
+
+      if (raw.trim().startsWith('{')) {
+        try {
+          final parsed = jsonDecode(raw) as Map<String, dynamic>;
+          // Cari key episode persis, atau '1' kalau cuma 1 entry flat.
+          final epData = parsed[epKey] ?? parsed['1'];
+          if (epData is Map) {
+            qualitiesForEp = {
+              for (final q in (epData as Map).keys)
+                q.toString(): (epData[q] ?? '').toString()
+            }..removeWhere((_, v) => v.trim().isEmpty);
+          }
+        } catch (_) {
+          // JSON rusak → treat sebagai URL flat di bawah.
+        }
+      }
+
+      if (qualitiesForEp != null && qualitiesForEp!.isNotEmpty) {
+        // Punya multi-kualitas dari Firestore → pakai logika sama kayak
+        // my_episode_links (pilih terbaik, wrap proxy, isi _availableQualities).
+        final tmpLink = MyEpisodeLink(qualitiesForEp!);
+        final quality = bestQualityFor(tmpLink);
+        final url = StreamingService.wrapProxyUrl(tmpLink.qualities[quality]!);
+        final qualities = sortedQualitiesFor(tmpLink);
+        final newViewId = 'video_iframe_${widget.anime.id}_ep${ep.number}_cms_' + DateTime.now().millisecondsSinceEpoch.toString();
+        setState(() {
+          _resolvedVideoUrl = url;
+          _resolvedQuality = quality;
+          _availableQualities = qualities;
+          _iframeViewId = newViewId;
+          _iframeRegistered = false;
+        });
+        debugPrint('[WatchScreen] CMS multi-quality for "${widget.anime.title}" ep${ep.number}: $quality');
+        return;
+      }
+
+      // Fallback: URL flat (atau {ep} placeholder).
+      String url = raw;
       if (url.contains('{ep}')) {
         url = url.replaceAll('{ep}', ep.number.toString());
       } else if (url.contains('{episode}')) {
@@ -965,6 +1057,63 @@ class _WatchScreenState extends State<WatchScreen>
       );
     }
 
+    // ── Loading state: lagi nunggu auto-scrape (gak langsung mock player) ──
+    if (_resolvedQuality == 'Searching...') {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.textPrimary.withValues(alpha: 0.08)),
+          color: AppTheme.background,
+        ),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: AppTheme.highlight),
+                const SizedBox(height: 12),
+                Text('Mencari stream sub Indo...',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ── Empty state: gak ada link manual & scrape gagal ──
+    if (_resolvedVideoUrl == null || _resolvedVideoUrl!.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.accent.withValues(alpha: 0.25)),
+          color: AppTheme.background,
+        ),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.video_library_outlined, color: AppTheme.accent, size: 36),
+                  const SizedBox(height: 10),
+                  Text('Belum ada link video',
+                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 6),
+                  Text('Isi link .m3u8/.mp4 di lib/my_episode_links.dart\natau set catalogEpisodeLink di Catalog Manager.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     // ── Fallback: mock player (thumbnail + controls simulasi) ─────────────────
     return RepaintBoundary(
       child: GestureDetector(
@@ -1001,6 +1150,7 @@ class _WatchScreenState extends State<WatchScreen>
                           _topBarV2(context),
                           _centerPlayButtonV2(),
                           _bottomOverlayV2(),
+                          if (_showQualityPopup) _qualityPopup(),
                         ],
                       ),
                     ),
@@ -2391,85 +2541,115 @@ class _WatchScreenState extends State<WatchScreen>
   }
 
   void _showQualitySelector() {
+    setState(() => _showQualityPopup = !_showQualityPopup);
+  }
+
+  /// Popup pemilih kualitas inline — di-render di DALAM overlay player
+  /// (bukan modal), jadi bisa dipakai pas fullscreen. Klik di luar /
+  /// pilih item akan menutupnya.
+  Widget _qualityPopup() {
     final qualities = _availableQualities.isNotEmpty
         ? _availableQualities
         : ['1080p (FHD)', '720p (HD)', '480p (SD)', 'Auto'];
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceElevated,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: _kPinkBorder),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.hd_rounded, color: _kPink, size: 20),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Pilih Kualitas Video',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+    return Positioned.fill(
+      child: GestureDetector(
+        onTap: () => setState(() => _showQualityPopup = false),
+        behavior: HitTestBehavior.opaque,
+        child: Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 56, right: 16),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 240,
+                constraints: const BoxConstraints(maxHeight: 320),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _kPinkBorder),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black54,
+                      blurRadius: 18,
+                      offset: Offset(0, 8),
                     ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white60),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const Divider(color: Colors.white12),
-              ...qualities.map((q) {
-                final isSelected = q == _resolvedQuality;
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                    color: isSelected ? _kPink : Colors.white38,
-                  ),
-                  title: Text(
-                    q,
-                    style: TextStyle(
-                      color: isSelected ? _kPink : Colors.white,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                  onTap: () {
-                    final link = resolveMyEpisodeLink(widget.anime.title, _currentEpisode.number);
-                    setState(() {
-                      _resolvedQuality = q;
-                      if (link != null && link.qualities.containsKey(q)) {
-                        _resolvedVideoUrl = link.qualities[q];
-                      }
-                      _iframeRegistered = false;
-                      _iframeViewId = 'video_iframe_${widget.anime.id}_ep${_currentEpisode.number}_${q}_${DateTime.now().millisecondsSinceEpoch}';
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Kualitas diubah ke $q'),
-                        duration: const Duration(seconds: 2),
-                        backgroundColor: _kPink,
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 14, 16, 8),
+                      child: Text(
+                        'Pilih Kualitas',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    );
-                  },
-                );
-              }),
-            ],
+                    ),
+                    const Divider(color: Colors.white12, height: 1),
+                    Flexible(
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        children: qualities.map((q) {
+                          final isSelected = q == _resolvedQuality;
+                          return ListTile(
+                            dense: true,
+                            leading: Icon(
+                              isSelected
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              color: isSelected ? _kPink : Colors.white38,
+                              size: 20,
+                            ),
+                            title: Text(
+                              q,
+                              style: TextStyle(
+                                color: isSelected ? _kPink : Colors.white,
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            onTap: () {
+                              final link = resolveMyEpisodeLink(
+                                  widget.anime.title, _currentEpisode.number);
+                              setState(() {
+                                _resolvedQuality = q;
+                                if (link != null && link.qualities.containsKey(q)) {
+                                  _resolvedVideoUrl = link.qualities[q];
+                                }
+                                _iframeRegistered = false;
+                                _iframeViewId =
+                                    'video_iframe_${widget.anime.id}_ep${_currentEpisode.number}_${q}_${DateTime.now().millisecondsSinceEpoch}';
+                                _showQualityPopup = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Kualitas diubah ke $q'),
+                                  duration: const Duration(seconds: 2),
+                                  backgroundColor: _kPink,
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

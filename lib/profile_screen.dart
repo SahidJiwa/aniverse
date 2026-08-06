@@ -24,6 +24,7 @@ import 'package:aniverse/app_theme.dart';
 import 'settings_screen.dart';
 import 'web_download_stub.dart'
     if (dart.library.html) 'web_download_web.dart';
+import 'proxied_network_image.dart';
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 class _C {
@@ -1760,8 +1761,14 @@ class _CurrentlyVibingCardState extends State<_CurrentlyVibingCard>
                           width: 64, height: 80,
                           color: AppTheme.surfaceElevated,
                           child: thumbUrl != null
-                            ? Image.network(thumbUrl, width: 64, height: 80, fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _thumbFallback(initials))
+                            ? ProxiedNetworkImage.forUrl(
+                                url: thumbUrl,
+                                width: 64,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                borderRadius: BorderRadius.circular(12),
+                                fallback: _thumbFallback(initials),
+                              )
                             : _thumbFallback(initials),
                         ),
                         // Progress bar di bawah thumbnail
@@ -4220,12 +4227,12 @@ class _AnimeIdentityCard extends StatefulWidget {
 class _AnimeIdentityCardState extends State<_AnimeIdentityCard> {
   int? _selectedGenreIdx;
   final GlobalKey _canvasKey = GlobalKey();
-  static const double _radarSize = 140;
+  static const double _radarSize = 170;
 
   int? _hitTest(Offset local) {
     const axes = 5;
     final cx = _radarSize / 2, cy = _radarSize / 2;
-    final r = _radarSize / 2 - 4;
+    final r = _radarSize / 2 - 26;
     double minDist = double.infinity;
     int? best;
     for (int i = 0; i < axes; i++) {
@@ -4257,7 +4264,7 @@ class _AnimeIdentityCardState extends State<_AnimeIdentityCard> {
             key: _canvasKey,
             onTapDown: _onTapDown,
             child: CustomPaint(
-              size: const Size(140, 140),
+              size: const Size(170, 170),
               painter: _RadarPainter(selectedIdx: _selectedGenreIdx),
             ),
           ),
@@ -4277,11 +4284,19 @@ class _AnimeIdentityCardState extends State<_AnimeIdentityCard> {
                   const SizedBox(width: 6),
                   SizedBox(
                     width: 60,
-                    child: ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(
-                      value: g['pct'] as double, minHeight: 5,
-                      backgroundColor: AppTheme.textPrimary.withOpacity(0.06),
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.highlight),
-                    )),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(3),
+                        boxShadow: isSelected ? [
+                          BoxShadow(color: (g['color'] as Color).withOpacity(0.6), blurRadius: 6, offset: const Offset(0, 0)),
+                        ] : null,
+                      ),
+                      child: ClipRRect(borderRadius: BorderRadius.circular(3), child: LinearProgressIndicator(
+                        value: g['pct'] as double, minHeight: 6,
+                        backgroundColor: AppTheme.textPrimary.withOpacity(0.06),
+                        valueColor: AlwaysStoppedAnimation<Color>(g['color'] as Color),
+                      )),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text('${((g['pct'] as double) * 100).toInt()}%', style: TextStyle(color: AppTheme.textSecondary, fontSize: 9, fontWeight: FontWeight.w700)),
@@ -4469,11 +4484,11 @@ const _kAlignmentTraits = [
 ];
 
 const _kRadarGenres = [
-  {'label': 'Action',        'pct': 0.85, 'desc': '68% tontonan — mostly Shonen & battle anime'},
-  {'label': 'Fantasy',       'pct': 0.60, 'desc': '15% — isekai & world-building favorit'},
-  {'label': 'Psychological', 'pct': 0.40, 'desc': '9% — suka tapi butuh mood yang tepat'},
-  {'label': 'Romance',       'pct': 0.55, 'desc': '5% — lebih ke side romance bukan main genre'},
-  {'label': 'Comedy',        'pct': 0.70, 'desc': '3% — pelengkap, jarang nonton pure comedy'},
+  {'label': 'Action',        'pct': 0.85, 'color': Color(0xFF9B6BFF), 'desc': '68% tontonan — mostly Shonen & battle anime'},
+  {'label': 'Fantasy',       'pct': 0.60, 'color': Color(0xFF4FC3F7), 'desc': '15% — isekai & world-building favorit'},
+  {'label': 'Psychological', 'pct': 0.40, 'color': Color(0xFFFF80AB), 'desc': '9% — suka tapi butuh mood yang tepat'},
+  {'label': 'Romance',       'pct': 0.55, 'color': Color(0xFFFFD740), 'desc': '5% — lebih ke side romance bukan main genre'},
+  {'label': 'Comedy',        'pct': 0.70, 'color': Color(0xFF7BE0A8), 'desc': '3% — pelengkap, jarang nonton pure comedy'},
 ];
 
 // ─── Alignment Card ──────────────────────────────────────────────────────────
@@ -4741,12 +4756,17 @@ class _RadarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2, cy = size.height / 2;
-    final r = size.width / 2 - 4;
+    final r = size.width / 2 - 26;
     const axes = 5;
-    const values = [0.85, 0.60, 0.40, 0.55, 0.70];
-    final bgPaint = Paint()..style = PaintingStyle.stroke..color = AppTheme.textPrimary.withOpacity(0.08)..strokeWidth = 1;
-    for (int ring = 1; ring <= 3; ring++) {
-      final rr = r * ring / 3;
+    final values = _kRadarGenres.map((g) => g['pct'] as double).toList();
+    final labels = _kRadarGenres.map((g) => g['label'] as String).toList();
+    // grid rings — lebih kelihatan
+    final bgPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = AppTheme.textPrimary.withOpacity(0.16)
+      ..strokeWidth = 1;
+    for (int ring = 1; ring <= 4; ring++) {
+      final rr = r * ring / 4;
       final path = Path();
       for (int i = 0; i < axes; i++) {
         final angle = -math.pi / 2 + i * 2 * math.pi / axes;
@@ -4756,6 +4776,17 @@ class _RadarPainter extends CustomPainter {
       path.close();
       canvas.drawPath(path, bgPaint);
     }
+    // axis spokes
+    final spokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = AppTheme.textPrimary.withOpacity(0.12)
+      ..strokeWidth = 1;
+    for (int i = 0; i < axes; i++) {
+      final angle = -math.pi / 2 + i * 2 * math.pi / axes;
+      canvas.drawLine(Offset(cx, cy),
+        Offset(cx + r * math.cos(angle), cy + r * math.sin(angle)), spokePaint);
+    }
+    // filled data polygon — kontras tinggi
     final fillPath = Path();
     for (int i = 0; i < axes; i++) {
       final angle = -math.pi / 2 + i * 2 * math.pi / axes;
@@ -4763,20 +4794,46 @@ class _RadarPainter extends CustomPainter {
       if (i == 0) fillPath.moveTo(x, y); else fillPath.lineTo(x, y);
     }
     fillPath.close();
-    canvas.drawPath(fillPath, Paint()..style = PaintingStyle.fill..color = AppTheme.highlight.withOpacity(0.18));
-    canvas.drawPath(fillPath, Paint()..style = PaintingStyle.stroke..color = AppTheme.highlight.withOpacity(0.7)..strokeWidth = 1.5);
-    // Dots — highlight selected
+    canvas.drawPath(fillPath, Paint()..style = PaintingStyle.fill..color = AppTheme.highlight.withOpacity(0.32));
+    canvas.drawPath(fillPath, Paint()..style = PaintingStyle.stroke..color = AppTheme.highlight..strokeWidth = 2.5);
+    // dots
     for (int i = 0; i < axes; i++) {
       final angle = -math.pi / 2 + i * 2 * math.pi / axes;
       final px = cx + r * values[i] * math.cos(angle);
       final py = cy + r * values[i] * math.sin(angle);
       final isSelected = selectedIdx == i;
       if (isSelected) {
-        canvas.drawCircle(Offset(px, py), 9, Paint()..color = AppTheme.highlight.withOpacity(0.20));
-        canvas.drawCircle(Offset(px, py), 5.5, Paint()..color = AppTheme.accent);
+        canvas.drawCircle(Offset(px, py), 11, Paint()..color = AppTheme.highlight.withOpacity(0.20));
+        canvas.drawCircle(Offset(px, py), 7, Paint()..color = AppTheme.accent);
       } else {
-        canvas.drawCircle(Offset(px, py), 3.5, Paint()..color = AppTheme.highlight);
+        canvas.drawCircle(Offset(px, py), 4, Paint()..color = AppTheme.highlight);
       }
+    }
+    // genre labels + %
+    for (int i = 0; i < axes; i++) {
+      final angle = -math.pi / 2 + i * 2 * math.pi / axes;
+      final lx = cx + (r + 14) * math.cos(angle);
+      final ly = cy + (r + 14) * math.sin(angle);
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '${labels[i]}\n${((values[i] * 100).toInt())}%',
+          style: TextStyle(
+            color: selectedIdx == i ? AppTheme.accent : AppTheme.textSecondary,
+            fontSize: selectedIdx == i ? 9.5 : 8.5,
+            fontWeight: selectedIdx == i ? FontWeight.w900 : FontWeight.w700,
+            height: 1.1,
+          ),
+        ),
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+      );
+      tp.layout();
+      final dx = lx - tp.width / 2;
+      final dy = ly - tp.height / 2;
+      // clamp biar gak keluar canvas
+      final clampedX = dx.clamp(0.0, size.width - tp.width);
+      final clampedY = dy.clamp(0.0, size.height - tp.height);
+      tp.paint(canvas, Offset(clampedX, clampedY));
     }
   }
   @override bool shouldRepaint(_RadarPainter old) => old.selectedIdx != selectedIdx;
@@ -4804,7 +4861,14 @@ class _RecentlyWatchedCard extends StatelessWidget {
         ...items.map((a) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [
           Container(width: 36, height: 36, decoration: BoxDecoration(color: AppTheme.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.accent.withOpacity(0.2))),
             child: ClipRRect(borderRadius: BorderRadius.circular(8), child: a.imageUrl.isNotEmpty
-              ? Image.network(a.imageUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Icon(Icons.movie_rounded, color: AppTheme.accent, size: 18))
+              ? ProxiedNetworkImage.forUrl(
+                  url: a.imageUrl,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(8),
+                  fallback: Icon(Icons.movie_rounded, color: AppTheme.accent, size: 18),
+                )
               : Icon(Icons.movie_rounded, color: AppTheme.accent, size: 18))),
           const SizedBox(width: 8),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

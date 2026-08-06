@@ -34,6 +34,30 @@
 
   <title>aniverse</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- HLS.js (m3u8 playback on Flutter Web <video> — sub Indo streams) -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+  <script>
+    // Attach an HLS (.m3u8) source to a <video> element using hls.js when
+    // the browser can't play HLS natively (Chrome/Edge desktop). Safari/iOS
+    // play HLS natively, so we fall back to the plain src there.
+    window.__aniverseAttachHls = function (videoEl, url) {
+      try {
+        if (!videoEl) return;
+        if (window.Hls && window.Hls.isSupported()) {
+          var hls = new window.Hls({ enableWorker: true, lowLatencyMode: false });
+          hls.loadSource(url);
+          hls.attachMedia(videoEl);
+          hls.on(window.Hls.Events.ERROR, function (evt, data) {
+            if (data && data.fatal) { try { hls.destroy(); } catch (e) {} }
+          });
+          videoEl.__aniverseHls = hls;
+        } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+          videoEl.src = url;
+        }
+      } catch (e) {}
+    };
+  </script>
 </head>
 <body>
   <!--
